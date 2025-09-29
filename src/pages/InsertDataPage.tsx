@@ -102,7 +102,7 @@ const InsertDataPage: React.FC<InsertDataPageProps> = ({ onNavigate }) => {
     }
   }, [selectedAluno]);
   
-  const alternativas: Alternativa[] = ['A', 'B', 'C', 'D', 'E'];
+  const alternativas: Alternativa[] = ['A', 'B', 'C', 'D'];
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
