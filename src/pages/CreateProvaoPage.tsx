@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  ArrowLeft, FilePlus2, Edit, Trash2, CheckCircle, AlertCircle, X, Plus, 
-  Hash, Save, ChevronDown, ChevronRight 
+  ArrowLeft, Edit, Trash2, CheckCircle, AlertCircle, X, Plus, 
+  Save, ChevronDown, ChevronRight 
 } from 'lucide-react';
 import type { Page } from '../App';
 import type {
@@ -41,15 +41,19 @@ const CreateProvaoPage: React.FC<{ onNavigate: (page: Page) => void }> = ({ onNa
   const loadProvoes = useCallback(async () => {
     try {
       setProvoes(await dbService.getProvoes());
-    } catch (e: any) {
-      showNotification(e.message, 'error');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      showNotification(msg, 'error');
     }
   }, [showNotification]);
 
   useEffect(() => {
     loadProvoes();
-    dbService.getEscolas().then(setEscolas).catch(e => showNotification(e.message, 'error'));
-  }, [loadProvoes]);
+    dbService.getEscolas().then(setEscolas).catch(e => {
+      const msg = e instanceof Error ? e.message : String(e);
+      showNotification(msg, 'error');
+    });
+  }, [loadProvoes, showNotification]);
 
   useEffect(() => {
     const fetchProvaoData = async () => {
@@ -70,8 +74,9 @@ const CreateProvaoPage: React.FC<{ onNavigate: (page: Page) => void }> = ({ onNa
           }
           setGabaritos(loadedGabaritos);
 
-        } catch (e: any) {
-          showNotification(e.message, 'error');
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          showNotification(msg, 'error');
         }
       } else {
         setQuestoes([]);
@@ -116,8 +121,9 @@ const CreateProvaoPage: React.FC<{ onNavigate: (page: Page) => void }> = ({ onNa
         showNotification('Provão criado com sucesso!');
       }
       loadProvoes();
-    } catch (e: any) {
-      showNotification(e.message, 'error');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      showNotification(msg, 'error');
     }
   };
 
@@ -134,7 +140,7 @@ const CreateProvaoPage: React.FC<{ onNavigate: (page: Page) => void }> = ({ onNa
         setNewQuestao({ habilidade_codigo: '', disciplina: 'Português' });
         setQuestoes(await dbService.getQuestoesByProvao(selectedProvao.id));
         showNotification('Questão adicionada!');
-      } catch (err: any) { showNotification(err.message, 'error'); }
+  } catch (err) { const msg = err instanceof Error ? err.message : String(err); showNotification(msg, 'error'); }
     }
   };
 
@@ -166,8 +172,9 @@ const CreateProvaoPage: React.FC<{ onNavigate: (page: Page) => void }> = ({ onNa
       
       setEditingQuestao(null);
       showNotification('Questão atualizada com sucesso!');
-    } catch (err: any) {
-      showNotification(err.message, 'error');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      showNotification(msg, 'error');
     }
   };
 
@@ -182,7 +189,7 @@ const CreateProvaoPage: React.FC<{ onNavigate: (page: Page) => void }> = ({ onNa
             await dbService.deleteQuestao(questaoId);
             setQuestoes(questoes.filter(q => q.id !== questaoId));
             showNotification('Questão excluída!', 'success');
-        } catch(e: any) { showNotification(e.message, 'error') }
+  } catch(e) { const msg = e instanceof Error ? e.message : String(e); showNotification(msg, 'error') }
     }
   }
 
@@ -191,9 +198,10 @@ const CreateProvaoPage: React.FC<{ onNavigate: (page: Page) => void }> = ({ onNa
         await dbService.addGabarito({ questaoId, respostaCorreta: resposta });
         setGabaritos(new Map(gabaritos.set(questaoId, resposta)));
         showNotification('Gabarito salvo.', 'success');
-    } catch (e:any) {
-        showNotification(e.message, 'error');
-    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    showNotification(msg, 'error');
+  }
   }
 
   const TurmaSelector = () => {

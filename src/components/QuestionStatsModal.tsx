@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, BarChart3, Users, CheckCircle, Hash, TrendingUp } from 'lucide-react';
 import dbService from '../services/dbService';
-import type { Questao, Alternativa } from '../types';
+import type { Questao, Alternativa, EstatisticasQuestao } from '../types';
 import Button from './Button';
 
 interface QuestionStatsModalProps {
@@ -13,13 +13,6 @@ interface QuestionStatsModalProps {
   onClose: () => void;
 }
 
-interface QuestionStats {
-  questao: Questao;
-  total_respostas: number;
-  respostas_corretas: number;
-  percentual_acerto: number;
-  distribuicao_respostas: Record<Alternativa, number>;
-}
 
 const QuestionStatsModal: React.FC<QuestionStatsModalProps> = ({
   questaoId,
@@ -27,28 +20,29 @@ const QuestionStatsModal: React.FC<QuestionStatsModalProps> = ({
   isOpen,
   onClose
 }) => {
-  const [stats, setStats] = useState<QuestionStats | null>(null);
+  const [stats, setStats] = useState<EstatisticasQuestao | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen && questaoId) {
-      loadStats();
-    }
-  }, [isOpen, questaoId]);
-
-  const loadStats = async () => {
+  const loadStats = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const statsData = await dbService.getEstatisticasQuestao(questaoId);
       setStats(statsData);
-    } catch (err: any) {
-      setError(err.message || 'Erro ao carregar estatísticas');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg || 'Erro ao carregar estatísticas');
     } finally {
       setLoading(false);
     }
-  };
+  }, [questaoId]);
+
+  useEffect(() => {
+    if (isOpen && questaoId) {
+      loadStats();
+    }
+  }, [isOpen, questaoId, loadStats]);
 
   const getAlternativeColor = (alt: Alternativa, isCorrect: boolean) => {
     if (isCorrect) return 'bg-green-500';
@@ -190,9 +184,9 @@ const QuestionStatsModal: React.FC<QuestionStatsModalProps> = ({
                   <h3 className="font-semibold mb-4 text-gray-800">Distribuição das Respostas</h3>
                   <div className="space-y-3">
                     {(['A', 'B', 'C', 'D'] as Alternativa[]).map(alt => {
-                      const count = stats.distribuicao_respostas[alt];
+                      const count = stats.distribuicao_respostas[alt] || 0;
                       const percentage = stats.total_respostas > 0 ? (count / stats.total_respostas) * 100 : 0;
-                      const isCorrect = stats.respostas_corretas > 0 && count === stats.respostas_corretas;
+                      const isCorrect = false; // gabarito não é retornado aqui; manter falso para evitar indicação incorreta
                       
                       return (
                         <div key={alt} className="flex items-center gap-3">

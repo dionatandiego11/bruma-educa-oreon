@@ -6,7 +6,7 @@ import type {
   Provao, Questao, Gabarito, Score, TurmaProfessor,
   CreateEscolaDTO, CreateSerieDTO, CreateTurmaDTO, CreateAlunoDTO, CreateProfessorDTO,
   CreateProvaoDTO, UpdateProvaoDTO, CreateQuestaoDTO, CreateGabaritoDTO, CreateScoreDTO,
-  Disciplina, Alternativa
+  Disciplina, Alternativa, EstatisticasQuestao
 } from '../types';
 
 class DatabaseService {
@@ -271,7 +271,16 @@ class DatabaseService {
       throw new Error(`Falha ao buscar professores: ${error.message}`);
     }
     
-    return data?.map((item: any) => item.professor).filter(Boolean) || [];
+    return (data?.map((item: unknown) => {
+      // postgrest nested result shape: { professor: { ... } }
+      if (item && typeof item === 'object') {
+        const obj = item as Record<string, unknown>;
+        if ('professor' in obj && obj.professor && typeof obj.professor === 'object') {
+          return obj.professor as Professor;
+        }
+      }
+      return null;
+    }).filter(Boolean) as Professor[]) || [];
   }
 
   async addProfessor(dto: CreateProfessorDTO): Promise<Professor> {
@@ -888,7 +897,7 @@ class DatabaseService {
   }
 
   // ------------------ MÉTODOS OTIMIZADOS PARA RESULTADOS ------------------
-  async getScoresByTurmaAndProvao(turmaId: string, provaoId: string): Promise<any[]> {
+  async getScoresByTurmaAndProvao(turmaId: string, provaoId: string): Promise<import('../types').DBScore[]> {
     const { data: matriculas, error: errorMatriculas } = await supabase
       .from('matriculas')
       .select('aluno_id')
@@ -927,7 +936,7 @@ class DatabaseService {
       throw new Error(`Falha ao buscar scores: ${errorScores.message}`);
     }
     
-    return scores || [];
+    return (scores as import('../types').DBScore[]) || [];
   }
 
   async getGabaritosByProvao(provaoId: string): Promise<Map<string, Alternativa>> {
@@ -962,7 +971,7 @@ class DatabaseService {
   async getDadosResultados(turmaId: string, provaoId: string): Promise<{
     alunos: Aluno[];
     questoes: Questao[];
-    scores: any[];
+    scores: import('../types').DBScore[];
     gabaritos: Map<string, Alternativa>;
   }> {
     const [alunos, questoes, scores, gabaritos] = await Promise.all([
@@ -976,15 +985,10 @@ class DatabaseService {
   }
 
   // ------------------ ESTATÍSTICAS ------------------
-  async getEstatisticasQuestao(questaoId: string): Promise<{
-    total: number;
-    acertos: number;
-    erros: number;
-    semResposta: number;
-    percentualAcerto: number;
-    percentualErro: number;
-    distribuicaoRespostas: Record<Alternativa, number>;
-  }> {
+  async getEstatisticasQuestao(questaoId: string): Promise<EstatisticasQuestao> {
+    // Busca a própria questão para incluir no retorno (útil para a UI)
+    const questao = await this.getQuestaoById(questaoId);
+
     const { data: scores, error: scoresError } = await supabase
       .from('scores')
       .select('resposta, aluno_id')
@@ -1008,32 +1012,31 @@ class DatabaseService {
 
     const totalRespostas = scores?.length || 0;
     const respostaCorreta = gabarito?.resposta_correta;
-    
-    const acertos = respostaCorreta 
-      ? scores?.filter(s => s.resposta === respostaCorreta).length || 0
-      : 0;
-    
-    const erros = totalRespostas - acertos;
-    const percentualAcerto = totalRespostas > 0 ? (acertos / totalRespostas) * 100 : 0;
-    const percentualErro = totalRespostas > 0 ? (erros / totalRespostas) * 100 : 0;
 
-    // Distribuição de respostas
-    const distribuicao: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, E: 0 };
-    scores?.forEach(score => {
-      if (score.resposta && distribuicao.hasOwnProperty(score.resposta)) {
-        distribuicao[score.resposta]++;
+    const respostasCorretas = respostaCorreta
+      ? (scores?.filter(s => s.resposta === respostaCorreta).length || 0)
+      : 0;
+
+    const percentualAcerto = totalRespostas > 0 ? (respostasCorretas / totalRespostas) * 100 : 0;
+
+    // Distribuição de respostas limitada às alternativas A-D (tipo definido no projeto)
+    const distribuicao: Record<Alternativa, number> = { A: 0, B: 0, C: 0, D: 0 };
+    scores?.forEach((score: unknown) => {
+      // score shape comes from Supabase join; treat as unknown and then extract
+      const s = score as { resposta?: string } | undefined;
+      const r = s?.resposta as Alternativa | undefined;
+      if (r && Object.prototype.hasOwnProperty.call(distribuicao, r)) {
+        distribuicao[r]++;
       }
     });
 
     return {
-      total: totalRespostas,
-      acertos,
-      erros,
-      semResposta: 0, // Pode ser calculado comparando com total de alunos
-      percentualAcerto,
-      percentualErro,
-      distribuicaoRespostas: distribuicao as Record<Alternativa, number>,
-    };
+      questao: (questao as Questao) || ({} as Questao),
+      total_respostas: totalRespostas,
+      respostas_corretas: respostasCorretas,
+      percentual_acerto: percentualAcerto,
+      distribuicao_respostas: distribuicao,
+    } as EstatisticasQuestao;
   }
 
   async getEstatisticasProvao(provaoId: string): Promise<{

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   ArrowLeft, School, Users, BookOpen, UserCheck, GraduationCap, 
-  Plus, X, Hash, CheckCircle, AlertCircle
+  Plus, X, CheckCircle, AlertCircle
 } from 'lucide-react';
 import dbService from '../services/dbService';
 import type { 
@@ -60,7 +60,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
       setProfessores(professoresData);
       setAlunos(alunosData);
     } catch (error) {
-      showNotification('Erro ao carregar dados iniciais.', 'error');
+      const msg = error instanceof Error ? error.message : String(error);
+      showNotification('Erro ao carregar dados iniciais. ' + msg, 'error');
     }
   }, [showNotification]);
 
@@ -73,8 +74,13 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
       if (selectedEscola) {
         try {
           setSeriesOfSelectedEscola(await dbService.getSeriesByEscola(selectedEscola));
-        } catch (error) { showNotification('Erro ao carregar Séries.', 'error'); }
-      } else { setSeriesOfSelectedEscola([]); }
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          showNotification('Erro ao carregar Séries. ' + msg, 'error');
+        }
+      } else {
+        setSeriesOfSelectedEscola([]);
+      }
       setSelectedSerie('');
     };
     fetchSeries();
@@ -85,8 +91,13 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
       if (selectedSerie) {
         try {
           setTurmasOfSelectedSerie(await dbService.getTurmasBySerie(selectedSerie));
-        } catch (error) { showNotification('Erro ao carregar turmas.', 'error'); }
-      } else { setTurmasOfSelectedSerie([]); }
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          showNotification('Erro ao carregar turmas. ' + msg, 'error');
+        }
+      } else {
+        setTurmasOfSelectedSerie([]);
+      }
       setSelectedTurma('');
     };
     fetchTurmas();
@@ -102,7 +113,10 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
           ]);
           setAlunosNaTurma(alunosData);
           setProfessoresNaTurma(professoresData);
-        } catch (error) { showNotification('Erro ao carregar detalhes da turma.', 'error'); }
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          showNotification('Erro ao carregar detalhes da turma. ' + msg, 'error');
+        }
       } else {
         setAlunosNaTurma([]);
         setProfessoresNaTurma([]);
@@ -122,11 +136,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
       setNewEscola({ nome: '', codigo_inep: '', localizacao: '' });
       loadInitialData();
       showNotification('Escola adicionada com sucesso!');
-    } catch (err: any) { showNotification(err.message || 'Erro ao adicionar escola.', 'error'); }
+  } catch (err) { const msg = err instanceof Error ? err.message : String(err); showNotification(msg || 'Erro ao adicionar escola.', 'error'); }
   };
   
   const genericAddHandler = useCallback(async <T,>(
-    creatorFunc: (dto: T) => Promise<any>,
+    creatorFunc: (dto: T) => Promise<unknown>,
     dto: T,
     successMessage: string,
     resetState: () => void,
@@ -137,8 +151,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
       resetState();
       await reloadFunc();
       showNotification(successMessage);
-    } catch (err: any) {
-      showNotification(err.message || `Erro ao adicionar.`, 'error');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      showNotification(msg || `Erro ao adicionar.`, 'error');
     }
   }, [showNotification]);
 
@@ -203,7 +218,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
         setAlunosNaTurma(await dbService.getAlunosByTurma(selectedTurma));
         setAlunoParaMatricular('');
         showNotification('Aluno matriculado com sucesso!');
-      } catch (err: any) { showNotification(err.message, 'error'); }
+  } catch (err) { const msg = err instanceof Error ? err.message : String(err); showNotification(msg, 'error'); }
     }
   };
 
@@ -213,7 +228,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
         await dbService.removeMatricula({ alunoId, turmaId: selectedTurma });
         setAlunosNaTurma(await dbService.getAlunosByTurma(selectedTurma));
         showNotification('Aluno desmatriculado com sucesso!');
-      } catch (err: any) { showNotification(err.message, 'error'); }
+  } catch (err) { const msg = err instanceof Error ? err.message : String(err); showNotification(msg, 'error'); }
     }
   };
 
@@ -225,7 +240,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
         setProfessoresNaTurma(await dbService.getProfessoresByTurma(selectedTurma));
         setProfessorParaAssociar('');
         showNotification('Professor associado com sucesso!');
-      } catch (err: any) { showNotification(err.message, 'error'); }
+  } catch (err) { const msg = err instanceof Error ? err.message : String(err); showNotification(msg, 'error'); }
     }
   };
 
@@ -235,7 +250,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
         await dbService.desassociateProfessorFromTurma({ professorId, turmaId: selectedTurma });
         setProfessoresNaTurma(await dbService.getProfessoresByTurma(selectedTurma));
         showNotification('Professor desassociado com sucesso!');
-      } catch (err: any) { showNotification(err.message, 'error'); }
+  } catch (err) { const msg = err instanceof Error ? err.message : String(err); showNotification(msg, 'error'); }
     }
   };
 

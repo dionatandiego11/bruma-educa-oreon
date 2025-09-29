@@ -81,7 +81,7 @@ const ResultsPage: React.FC<ResultsPageProps> = ({ onNavigate }) => {
           setLoadingProgress({ step: 'Processando resultados...', progress: 70 });
 
           const scoresPorAluno = new Map<string, Map<string, Alternativa>>();
-          scores.forEach(score => {
+          (scores as import('../types').DBScore[]).forEach(score => {
             if (!scoresPorAluno.has(score.aluno_id)) scoresPorAluno.set(score.aluno_id, new Map());
             scoresPorAluno.get(score.aluno_id)!.set(score.questao_id, score.resposta);
           });
@@ -111,8 +111,9 @@ const ResultsPage: React.FC<ResultsPageProps> = ({ onNavigate }) => {
           setResultados(resultadosCalculados);
           setLoadingProgress({ step: 'Finalizado!', progress: 100 });
 
-        } catch (err: any) {
-          setError('Erro ao calcular resultados: ' + err.message);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          setError('Erro ao calcular resultados: ' + msg);
           setLoadingProgress({ step: 'Erro!', progress: 0 });
         } finally {
           setTimeout(() => setIsLoading(false), 1000);

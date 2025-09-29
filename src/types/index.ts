@@ -183,6 +183,15 @@ export interface EstatisticasTurma {
   }[];
 }
 
+// Estatísticas por questão (formato usado pela UI)
+export interface EstatisticasQuestao {
+  questao: Questao;
+  total_respostas: number;
+  respostas_corretas: number;
+  percentual_acerto: number; // 0..100
+  distribuicao_respostas: Record<Alternativa, number>;
+}
+
 // Enums para status e validações
 export enum StatusMatricula {
   ATIVA = 'ativa',
@@ -200,5 +209,15 @@ export enum TipoUsuario {
 export interface ErrorResponse {
   code: string;
   message: string;
-  details?: any;
+  details?: unknown;
+}
+
+// Tipo para resultados de join de scores vindo do Supabase
+export interface DBScore {
+  aluno_id: string;
+  questao_id: string;
+  resposta: Alternativa;
+  // possivelmente inclui propriedades aninhadas quando usado com select joins
+  aluno?: Aluno;
+  questao?: Questao;
 }
