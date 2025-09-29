@@ -23,6 +23,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
   const [escolas, setEscolas] = useState<Escola[]>([]);
   const [professores, setProfessores] = useState<Professor[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [loading, setLoading] = useState(true);
   
   const [newEscola, setNewEscola] = useState({ nome: '', codigo_inep: '', localizacao: '' });
   const [newSerie, setNewSerie] = useState('');
@@ -50,6 +51,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
   }, []);
   
   const loadInitialData = useCallback(async () => {
+    setLoading(true);
     try {
       const [escolasData, professoresData, alunosData] = await Promise.all([
         dbService.getEscolas(),
@@ -61,6 +63,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
       setAlunos(alunosData);
     } catch (error) {
       showNotification('Erro ao carregar dados iniciais.', 'error');
+    } finally {
+      setLoading(false);
     }
   }, [showNotification]);
 
@@ -275,6 +279,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
             <div className="w-40"></div>
         </div>
 
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           {/* Coluna de Gerenciamento de Estrutura */}
           <div className="space-y-6">
@@ -395,6 +404,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
             </Card>
           </div>
         </div>
+        )}
       </div>
     </div>
   )

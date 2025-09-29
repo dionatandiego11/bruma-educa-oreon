@@ -58,12 +58,18 @@ O frontend é construído em React com TypeScript, estilizado com Tailwind CSS e
    ```
 
 3. Configure o Supabase:
-   - Crie um arquivo `.env.local` na raiz do projeto:
+   - **Variáveis de Ambiente**: Copie o arquivo `.env.example` para um novo arquivo chamado `.env` e preencha com as suas credenciais do Supabase.
+     ```bash
+     cp .env.example .env
      ```
-     VITE_SUPABASE_URL=your_supabase_url
-     VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-     ```
-   - No dashboard do Supabase, habilite as tabelas necessárias (escolas, series, turmas, etc.) conforme o schema em `src/types/index.ts`. Use o SQL Editor para rodar os scripts de inicialização se fornecido.
+     Você encontrará as variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` no painel do seu projeto no Supabase, em **Project Settings > API**.
+
+   - **Schema do Banco de Dados**: No painel do Supabase, vá para o **SQL Editor** e execute o script contido em `supabase-schequema.sql` para criar todas as tabelas e relacionamentos necessários.
+
+   - **Segurança (Row Level Security - RLS)**: Para um ambiente de produção, é **crucial** habilitar o RLS em todas as tabelas para proteger seus dados.
+     - Vá para **Authentication > Policies** no painel do Supabase.
+     - Habilite o RLS para cada tabela.
+     - Crie políticas de segurança que definam quem pode acessar e modificar os dados. Por exemplo, você pode querer que apenas usuários autenticados possam ler dados, e apenas administradores possam criar ou deletar registros. A configuração exata dependerá das regras de negócio da sua aplicação.
 
 4. Rode o projeto em modo de desenvolvimento:
    ```bash

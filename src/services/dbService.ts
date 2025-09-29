@@ -1,6 +1,7 @@
 // src/services/dbService.ts
 
 import { supabase } from './supabaseClient';
+import { toErrorResponse, createAppError } from '../utils/errorHandler';
 import type {
   Escola, Serie, Turma, Professor, Aluno, Matricula,
   Provao, Questao, Gabarito, Score, TurmaProfessor,
@@ -19,8 +20,7 @@ class DatabaseService {
       .order('nome');
     
     if (error) {
-      console.error('Erro ao buscar escolas:', error);
-      throw new Error(`Falha ao buscar escolas: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data || [];
@@ -35,10 +35,9 @@ class DatabaseService {
     
     if (error) {
       if (error.code === '23505') {
-        throw new Error('Já existe uma escola com este nome ou código INEP');
+        throw createAppError('DUPLICATE_ESCOLA', 'Já existe uma escola com este nome ou código INEP');
       }
-      console.error('Erro ao criar escola:', error);
-      throw new Error(`Falha ao criar escola: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -54,10 +53,9 @@ class DatabaseService {
     
     if (error) {
       if (error.code === '23505') {
-        throw new Error('Já existe uma escola com este nome ou código INEP');
+        throw createAppError('DUPLICATE_ESCOLA', 'Já existe uma escola com este nome ou código INEP');
       }
-      console.error('Erro ao atualizar escola:', error);
-      throw new Error(`Falha ao atualizar escola: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -70,8 +68,7 @@ class DatabaseService {
       .eq('id', escolaId);
 
     if (error) {
-      console.error('Erro ao deletar escola:', error);
-      throw new Error(`Falha ao deletar escola: ${error.message}`);
+      throw toErrorResponse(error);
     }
   }
 
@@ -84,8 +81,7 @@ class DatabaseService {
       .order('nome');
     
     if (error) {
-      console.error('Erro ao buscar séries:', error);
-      throw new Error(`Falha ao buscar séries: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data || [];
@@ -103,10 +99,9 @@ class DatabaseService {
     
     if (error) {
       if (error.code === '23503') {
-        throw new Error('Escola não encontrada');
+        throw createAppError('NOT_FOUND', 'Escola não encontrada');
       }
-      console.error('Erro ao criar série:', error);
-      throw new Error(`Falha ao criar série: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -121,8 +116,7 @@ class DatabaseService {
       .single();
     
     if (error) {
-      console.error('Erro ao atualizar série:', error);
-      throw new Error(`Falha ao atualizar série: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -135,8 +129,7 @@ class DatabaseService {
       .eq('id', serieId);
 
     if (error) {
-      console.error('Erro ao deletar série:', error);
-      throw new Error(`Falha ao deletar série: ${error.message}`);
+      throw toErrorResponse(error);
     }
   }
 
@@ -149,8 +142,7 @@ class DatabaseService {
       .order('nome');
     
     if (error) {
-      console.error('Erro ao buscar turmas:', error);
-      throw new Error(`Falha ao buscar turmas: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data || [];
@@ -165,8 +157,7 @@ class DatabaseService {
     
     if (error) {
       if (error.code === 'PGRST116') return null;
-      console.error('Erro ao buscar turma:', error);
-      throw new Error(`Falha ao buscar turma: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -184,10 +175,9 @@ class DatabaseService {
     
     if (error) {
       if (error.code === '23503') {
-        throw new Error('Série não encontrada');
+        throw createAppError('NOT_FOUND', 'Série não encontrada');
       }
-      console.error('Erro ao criar turma:', error);
-      throw new Error(`Falha ao criar turma: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     if (dto.professorIds && dto.professorIds.length > 0) {
@@ -210,8 +200,7 @@ class DatabaseService {
       .single();
     
     if (error) {
-      console.error('Erro ao atualizar turma:', error);
-      throw new Error(`Falha ao atualizar turma: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -224,8 +213,7 @@ class DatabaseService {
       .eq('id', turmaId);
 
     if (error) {
-      console.error('Erro ao deletar turma:', error);
-      throw new Error(`Falha ao deletar turma: ${error.message}`);
+      throw toErrorResponse(error);
     }
   }
 
@@ -237,8 +225,7 @@ class DatabaseService {
       .order('nome');
     
     if (error) {
-      console.error('Erro ao buscar professores:', error);
-      throw new Error(`Falha ao buscar professores: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data || [];
@@ -253,8 +240,7 @@ class DatabaseService {
     
     if (error) {
       if (error.code === 'PGRST116') return null;
-      console.error('Erro ao buscar professor:', error);
-      throw new Error(`Falha ao buscar professor: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -267,8 +253,7 @@ class DatabaseService {
       .eq('turma_id', turmaId);
 
     if (error) {
-      console.error('Erro ao buscar professores da turma:', error);
-      throw new Error(`Falha ao buscar professores: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data?.map((item: any) => item.professor).filter(Boolean) || [];
@@ -282,8 +267,7 @@ class DatabaseService {
       .single();
     
     if (error) {
-      console.error('Erro ao criar professor:', error);
-      throw new Error(`Falha ao criar professor: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -298,8 +282,7 @@ class DatabaseService {
       .single();
     
     if (error) {
-      console.error('Erro ao atualizar professor:', error);
-      throw new Error(`Falha ao atualizar professor: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -312,8 +295,7 @@ class DatabaseService {
       .eq('id', professorId);
 
     if (error) {
-      console.error('Erro ao deletar professor:', error);
-      throw new Error(`Falha ao deletar professor: ${error.message}`);
+      throw toErrorResponse(error);
     }
   }
 
@@ -326,13 +308,12 @@ class DatabaseService {
     
     if (error) {
       if (error.code === '23505') {
-        throw new Error('Este professor já está associado a esta turma');
+        throw createAppError('DUPLICATE_ASSOCIATION', 'Este professor já está associado a esta turma');
       }
       if (error.code === '23503') {
-        throw new Error('Professor ou turma não encontrados');
+        throw createAppError('NOT_FOUND', 'Professor ou turma não encontrados');
       }
-      console.error('Erro ao associar professor:', error);
-      throw new Error(`Falha ao associar professor: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -346,8 +327,7 @@ class DatabaseService {
       .eq('turma_id', dto.turmaId);
     
     if (error) {
-      console.error('Erro ao desassociar professor:', error);
-      throw new Error(`Falha ao desassociar professor: ${error.message}`);
+      throw toErrorResponse(error);
     }
   }
 
@@ -359,8 +339,7 @@ class DatabaseService {
       .order('nome');
     
     if (error) {
-      console.error('Erro ao buscar alunos:', error);
-      throw new Error(`Falha ao buscar alunos: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data || [];
@@ -375,8 +354,7 @@ class DatabaseService {
     
     if (error) {
       if (error.code === 'PGRST116') return null;
-      console.error('Erro ao buscar aluno:', error);
-      throw new Error(`Falha ao buscar aluno: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -390,8 +368,7 @@ class DatabaseService {
       .eq('ativo', true);
 
     if (error) {
-      console.error('Erro ao buscar alunos da turma:', error);
-      throw new Error(`Falha ao buscar alunos da turma: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data?.flatMap(m => m.aluno).filter(Boolean) as Aluno[] ?? [];
@@ -406,10 +383,9 @@ class DatabaseService {
     
     if (error) {
       if (error.code === '23505') {
-        throw new Error('Já existe um aluno com esta matrícula');
+        throw createAppError('DUPLICATE_ALUNO', 'Já existe um aluno com esta matrícula');
       }
-      console.error('Erro ao criar aluno:', error);
-      throw new Error(`Falha ao criar aluno: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -425,10 +401,9 @@ class DatabaseService {
     
     if (error) {
       if (error.code === '23505') {
-        throw new Error('Já existe um aluno com esta matrícula');
+        throw createAppError('DUPLICATE_ALUNO', 'Já existe um aluno com esta matrícula');
       }
-      console.error('Erro ao atualizar aluno:', error);
-      throw new Error(`Falha ao atualizar aluno: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -441,8 +416,7 @@ class DatabaseService {
       .eq('id', alunoId);
 
     if (error) {
-      console.error('Erro ao deletar aluno:', error);
-      throw new Error(`Falha ao deletar aluno: ${error.message}`);
+      throw toErrorResponse(error);
     }
   }
 
@@ -454,8 +428,7 @@ class DatabaseService {
       .eq('aluno_id', alunoId);
     
     if (error) {
-      console.error('Erro ao buscar matrículas:', error);
-      throw new Error(`Falha ao buscar matrículas: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data || [];
@@ -468,8 +441,7 @@ class DatabaseService {
       .eq('turma_id', turmaId);
     
     if (error) {
-      console.error('Erro ao buscar matrículas:', error);
-      throw new Error(`Falha ao buscar matrículas: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data || [];
@@ -484,13 +456,12 @@ class DatabaseService {
     
     if (error) {
       if (error.code === '23505') {
-        throw new Error('Este aluno já está matriculado nesta turma');
+        throw createAppError('DUPLICATE_MATRICULA', 'Este aluno já está matriculado nesta turma');
       }
       if (error.code === '23503') {
-        throw new Error('Aluno ou turma não encontrados');
+        throw createAppError('NOT_FOUND', 'Aluno ou turma não encontrados');
       }
-      console.error('Erro ao matricular aluno:', error);
-      throw new Error(`Falha ao matricular aluno: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -506,8 +477,7 @@ class DatabaseService {
       .single();
     
     if (error) {
-      console.error('Erro ao atualizar status da matrícula:', error);
-      throw new Error(`Falha ao atualizar status da matrícula: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -521,8 +491,7 @@ class DatabaseService {
       .eq('turma_id', dto.turmaId);
     
     if (error) {
-      console.error('Erro ao desmatricular aluno:', error);
-      throw new Error(`Falha ao desmatricular aluno: ${error.message}`);
+      throw toErrorResponse(error);
     }
   }
 
@@ -534,8 +503,7 @@ class DatabaseService {
       .order('created_at', { ascending: false });
     
     if (error) {
-      console.error('Erro ao buscar provões:', error);
-      throw new Error(`Falha ao buscar provões: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data || [];
@@ -550,8 +518,7 @@ class DatabaseService {
     
     if (error) {
       if (error.code === 'PGRST116') return null;
-      console.error('Erro ao buscar provão:', error);
-      throw new Error(`Falha ao buscar provão: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -564,8 +531,7 @@ class DatabaseService {
       .eq('turma_id', turmaId);
 
     if (ptError) {
-      console.error('Erro ao buscar associações de provão:', ptError);
-      throw new Error(`Falha ao buscar associações de provão: ${ptError.message}`);
+      throw toErrorResponse(ptError);
     }
     
     if (!provaoTurmas || provaoTurmas.length === 0) return [];
@@ -579,8 +545,7 @@ class DatabaseService {
       .order('created_at', { ascending: false });
     
     if (error) {
-      console.error('Erro ao buscar provões:', error);
-      throw new Error(`Falha ao buscar provões: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data || [];
@@ -593,8 +558,7 @@ class DatabaseService {
       .eq('provao_id', provaoId);
     
     if (error) {
-      console.error('Erro ao buscar turmas do provão:', error);
-      throw new Error(`Falha ao buscar turmas do provão: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data?.map(item => item.turma_id) || [];
@@ -608,8 +572,7 @@ class DatabaseService {
       .single();
 
     if (provaoError) {
-      console.error('Erro ao criar provão:', provaoError);
-      throw new Error(`Falha ao criar provão: ${provaoError.message}`);
+      throw toErrorResponse(provaoError);
     }
 
     if (dto.turmaIds && dto.turmaIds.length > 0) {
@@ -622,8 +585,7 @@ class DatabaseService {
       
       if (assocError) {
         await supabase.from('provoes').delete().eq('id', provaoData.id);
-        console.error('Erro ao associar provão a turmas:', assocError);
-        throw new Error(`Falha ao associar provão a turmas: ${assocError.message}`);
+        throw toErrorResponse(assocError);
       }
     }
     
@@ -639,8 +601,7 @@ class DatabaseService {
       .single();
     
     if (provaoError) {
-      console.error('Erro ao atualizar nome do provão:', provaoError);
-      throw new Error(`Falha ao atualizar nome do provão: ${provaoError.message}`);
+      throw toErrorResponse(provaoError);
     }
 
     const { error: deleteError } = await supabase
@@ -649,8 +610,7 @@ class DatabaseService {
       .eq('provao_id', provaoId);
     
     if (deleteError) {
-      console.error('Erro ao remover associações antigas:', deleteError);
-      throw new Error(`Falha ao remover associações antigas: ${deleteError.message}`);
+      throw toErrorResponse(deleteError);
     }
 
     if (dto.turmaIds && dto.turmaIds.length > 0) {
@@ -662,8 +622,7 @@ class DatabaseService {
       const { error: insertError } = await supabase.from('provoes_turmas').insert(associations);
       
       if (insertError) {
-        console.error('Erro ao criar novas associações:', insertError);
-        throw new Error(`Falha ao criar novas associações: ${insertError.message}`);
+        throw toErrorResponse(insertError);
       }
     }
     
@@ -677,8 +636,7 @@ class DatabaseService {
       .eq('id', provaoId);
     
     if (error) {
-      console.error('Erro ao excluir provão:', error);
-      throw new Error(`Falha ao excluir provão: ${error.message}`);
+      throw toErrorResponse(error);
     }
   }
 
@@ -691,8 +649,7 @@ class DatabaseService {
       .order('ordem');
 
     if (error) {
-      console.error('Erro ao buscar questões:', error);
-      throw new Error(`Falha ao buscar questões: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data || [];
@@ -707,8 +664,7 @@ class DatabaseService {
     
     if (error) {
       if (error.code === 'PGRST116') return null;
-      console.error('Erro ao buscar questão:', error);
-      throw new Error(`Falha ao buscar questão: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -728,10 +684,9 @@ class DatabaseService {
     
     if (error) {
       if (error.code === '23503') {
-        throw new Error('Provão não encontrado');
+        throw createAppError('NOT_FOUND', 'Provão não encontrado');
       }
-      console.error('Erro ao criar questão:', error);
-      throw new Error(`Falha ao criar questão: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -746,8 +701,7 @@ class DatabaseService {
       .single();
     
     if (error) {
-      console.error('Erro ao atualizar questão:', error);
-      throw new Error(`Falha ao atualizar questão: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -760,8 +714,7 @@ class DatabaseService {
       .eq('id', questaoId);
     
     if (error) {
-      console.error('Erro ao excluir questão:', error);
-      throw new Error(`Falha ao excluir questão: ${error.message}`);
+      throw toErrorResponse(error);
     }
   }
 
@@ -774,8 +727,7 @@ class DatabaseService {
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      console.error('Erro ao buscar gabarito:', error);
-      throw new Error(`Falha ao buscar gabarito: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -792,8 +744,7 @@ class DatabaseService {
       .single();
     
     if (error) {
-      console.error('Erro ao salvar gabarito:', error);
-      throw new Error(`Falha ao salvar gabarito: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -806,8 +757,7 @@ class DatabaseService {
       .eq('questao_id', questaoId);
     
     if (error) {
-      console.error('Erro ao excluir gabarito:', error);
-      throw new Error(`Falha ao excluir gabarito: ${error.message}`);
+      throw toErrorResponse(error);
     }
   }
 
@@ -823,8 +773,7 @@ class DatabaseService {
       .single();
     
     if (error) {
-      console.error('Erro ao salvar resposta:', error);
-      throw new Error(`Falha ao salvar resposta: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -839,8 +788,7 @@ class DatabaseService {
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      console.error('Erro ao buscar resposta:', error);
-      throw new Error(`Falha ao buscar resposta: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data;
@@ -853,8 +801,7 @@ class DatabaseService {
       .eq('aluno_id', alunoId);
 
     if (error) {
-      console.error('Erro ao buscar respostas do aluno:', error);
-      throw new Error(`Falha ao buscar respostas do aluno: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data || [];
@@ -867,8 +814,7 @@ class DatabaseService {
       .eq('questao_id', questaoId);
 
     if (error) {
-      console.error('Erro ao buscar respostas da questão:', error);
-      throw new Error(`Falha ao buscar respostas da questão: ${error.message}`);
+      throw toErrorResponse(error);
     }
     
     return data || [];
@@ -882,8 +828,7 @@ class DatabaseService {
       .eq('questao_id', questaoId);
     
     if (error) {
-      console.error('Erro ao excluir resposta:', error);
-      throw new Error(`Falha ao excluir resposta: ${error.message}`);
+      throw toErrorResponse(error);
     }
   }
 
@@ -896,8 +841,7 @@ class DatabaseService {
       .eq('ativo', true);
     
     if (errorMatriculas) {
-      console.error('Erro ao buscar matrículas:', errorMatriculas);
-      throw new Error(`Falha ao buscar matrículas: ${errorMatriculas.message}`);
+      throw toErrorResponse(errorMatriculas);
     }
     
     const alunoIds = matriculas?.map(m => m.aluno_id) || [];
@@ -909,8 +853,7 @@ class DatabaseService {
       .eq('provao_id', provaoId);
     
     if (errorQuestoes) {
-      console.error('Erro ao buscar questões:', errorQuestoes);
-      throw new Error(`Falha ao buscar questões: ${errorQuestoes.message}`);
+      throw toErrorResponse(errorQuestoes);
     }
     
     const questaoIds = questoes?.map(q => q.id) || [];
@@ -923,8 +866,7 @@ class DatabaseService {
       .in('questao_id', questaoIds);
     
     if (errorScores) {
-      console.error('Erro ao buscar scores:', errorScores);
-      throw new Error(`Falha ao buscar scores: ${errorScores.message}`);
+      throw toErrorResponse(errorScores);
     }
     
     return scores || [];
@@ -937,8 +879,7 @@ class DatabaseService {
       .eq('provao_id', provaoId);
     
     if (errorQuestoes) {
-      console.error('Erro ao buscar questões:', errorQuestoes);
-      throw new Error(`Falha ao buscar questões: ${errorQuestoes.message}`);
+      throw toErrorResponse(errorQuestoes);
     }
     
     const questaoIds = questoes?.map(q => q.id) || [];
@@ -950,8 +891,7 @@ class DatabaseService {
       .in('questao_id', questaoIds);
     
     if (errorGabaritos) {
-      console.error('Erro ao buscar gabaritos:', errorGabaritos);
-      throw new Error(`Falha ao buscar gabaritos: ${errorGabaritos.message}`);
+      throw toErrorResponse(errorGabaritos);
     }
 
     const gabaritosMap = new Map<string, Alternativa>();
@@ -976,14 +916,16 @@ class DatabaseService {
   }
 
   // ------------------ ESTATÍSTICAS ------------------
+  /**
+   * Fetches and calculates statistics for a given question.
+   * @param questaoId The ID of the question.
+   * @returns An object containing question statistics.
+   */
   async getEstatisticasQuestao(questaoId: string): Promise<{
-    total: number;
-    acertos: number;
-    erros: number;
-    semResposta: number;
-    percentualAcerto: number;
-    percentualErro: number;
-    distribuicaoRespostas: Record<Alternativa, number>;
+    total_respostas: number;
+    respostas_corretas: number;
+    percentual_acerto: number;
+    distribuicao_respostas: Record<Alternativa, number>;
   }> {
     const { data: scores, error: scoresError } = await supabase
       .from('scores')
@@ -991,8 +933,7 @@ class DatabaseService {
       .eq('questao_id', questaoId);
 
     if (scoresError) {
-      console.error('Erro ao buscar respostas:', scoresError);
-      throw new Error(`Falha ao buscar respostas: ${scoresError.message}`);
+      throw toErrorResponse(scoresError);
     }
 
     const { data: gabarito, error: gabError } = await supabase
@@ -1002,37 +943,31 @@ class DatabaseService {
       .single();
 
     if (gabError && gabError.code !== 'PGRST116') {
-      console.error('Erro ao buscar gabarito:', gabError);
-      throw new Error(`Falha ao buscar gabarito: ${gabError.message}`);
+      throw toErrorResponse(gabError);
     }
 
-    const totalRespostas = scores?.length || 0;
+    const total_respostas = scores?.length || 0;
     const respostaCorreta = gabarito?.resposta_correta;
     
-    const acertos = respostaCorreta 
+    const respostas_corretas = respostaCorreta
       ? scores?.filter(s => s.resposta === respostaCorreta).length || 0
       : 0;
     
-    const erros = totalRespostas - acertos;
-    const percentualAcerto = totalRespostas > 0 ? (acertos / totalRespostas) * 100 : 0;
-    const percentualErro = totalRespostas > 0 ? (erros / totalRespostas) * 100 : 0;
+    const percentual_acerto = total_respostas > 0 ? (respostas_corretas / total_respostas) * 100 : 0;
 
     // Distribuição de respostas
-    const distribuicao: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, E: 0 };
+    const distribuicao_respostas: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
     scores?.forEach(score => {
-      if (score.resposta && distribuicao.hasOwnProperty(score.resposta)) {
-        distribuicao[score.resposta]++;
+      if (score.resposta && distribuicao_respostas.hasOwnProperty(score.resposta)) {
+        distribuicao_respostas[score.resposta]++;
       }
     });
 
     return {
-      total: totalRespostas,
-      acertos,
-      erros,
-      semResposta: 0, // Pode ser calculado comparando com total de alunos
-      percentualAcerto,
-      percentualErro,
-      distribuicaoRespostas: distribuicao as Record<Alternativa, number>,
+      total_respostas,
+      respostas_corretas,
+      percentual_acerto,
+      distribuicao_respostas: distribuicao_respostas as Record<Alternativa, number>,
     };
   }
 
@@ -1062,8 +997,7 @@ class DatabaseService {
       .in('questao_id', questaoIds);
 
     if (scoresError) {
-      console.error('Erro ao buscar scores:', scoresError);
-      throw new Error(`Falha ao buscar scores: ${scoresError.message}`);
+      throw toErrorResponse(scoresError);
     }
 
     const gabaritos = await this.getGabaritosByProvao(provaoId);
@@ -1146,8 +1080,7 @@ class DatabaseService {
       .in('questao_id', questaoIds);
 
     if (scoresError) {
-      console.error('Erro ao buscar respostas do aluno:', scoresError);
-      throw new Error(`Falha ao buscar respostas do aluno: ${scoresError.message}`);
+      throw toErrorResponse(scoresError);
     }
 
     const gabaritos = await this.getGabaritosByProvao(provaoId);
@@ -1205,8 +1138,7 @@ class DatabaseService {
       .in('questao_id', questaoIds);
 
     if (error) {
-      console.error('Erro ao limpar respostas:', error);
-      throw new Error(`Falha ao limpar respostas: ${error.message}`);
+      throw toErrorResponse(error);
     }
   }
 
@@ -1214,7 +1146,7 @@ class DatabaseService {
     const provaoOriginal = await this.getProvaoById(provaoId);
     
     if (!provaoOriginal) {
-      throw new Error('Provão original não encontrado');
+      throw createAppError('NOT_FOUND', 'Provão original não encontrado');
     }
 
     const questoesOriginais = await this.getQuestoesByProvao(provaoId);
