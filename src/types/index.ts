@@ -1,7 +1,7 @@
 // src/types/index.ts 
 
 export type Disciplina = 'Português' | 'Matemática';
-export type Alternativa = 'A' | 'B' | 'C' | 'D' | 'E';
+export type Alternativa = 'A' | 'B' | 'C' | 'D';
 
 // Interface base com campos comuns
 interface BaseEntity {
