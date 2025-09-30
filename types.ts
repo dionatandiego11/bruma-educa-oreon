@@ -1,4 +1,4 @@
-// src/types/index.ts 
+import type { User } from '@supabase/supabase-js';
 
 export type Disciplina = 'Português' | 'Matemática';
 export type Alternativa = 'A' | 'B' | 'C' | 'D';
@@ -190,6 +190,7 @@ export interface EstatisticasQuestao {
   respostas_corretas: number;
   percentual_acerto: number; // 0..100
   distribuicao_respostas: Record<Alternativa, number>;
+  resposta_correta: Alternativa | null;
 }
 
 // Enums para status e validações
@@ -220,4 +221,12 @@ export interface DBScore {
   // possivelmente inclui propriedades aninhadas quando usado com select joins
   aluno?: Aluno;
   questao?: Questao;
+}
+
+
+export interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signOut: () => Promise<void>;
 }
