@@ -92,26 +92,40 @@ class DatabaseService {
   }
 
   // ------------------ ALUNOS ------------------
-  async getAlunos(): Promise<Aluno[]> {
-    const { data, error } = await supabase.from('alunos').select('*').order('nome');
-    if (error) throw new Error(`Falha ao buscar alunos: ${error.message}`);
-    return data || [];
-  }
-  
-  async getAlunosByTurma(turmaId: string): Promise<Aluno[]> {
-    const { data, error } = await supabase.from('matriculas').select('aluno:alunos(*)').eq('turma_id', turmaId).eq('ativo', true);
-    if (error) throw new Error(`Falha ao buscar alunos da turma: ${error.message}`);
-    return data?.flatMap((m: any) => m.aluno).filter(Boolean) as Aluno[] ?? [];
-  }
+async getAlunos(): Promise<Aluno[]> {
+  const { data, error } = await supabase.from('alunos').select('*').order('nome');
+  if (error) throw new Error(`Falha ao buscar alunos: ${error.message}`);
+  return data || [];
+}
 
-  async addAluno(dto: CreateAlunoDTO): Promise<Aluno> {
-    const { data, error } = await supabase.from('alunos').insert(dto).select().single();
-    if (error) {
-      if (error.code === '23505') throw new Error('Já existe um aluno com esta matrícula');
-      throw new Error(`Falha ao criar aluno: ${error.message}`);
-    }
-    return data;
+async getAlunosByTurma(turmaId: string): Promise<Aluno[]> {
+  const { data, error } = await supabase.from('matriculas').select('aluno:alunos(*)').eq('turma_id', turmaId).eq('ativo', true);
+  if (error) throw new Error(`Falha ao buscar alunos da turma: ${error.message}`);
+  return data?.flatMap((m: any) => m.aluno).filter(Boolean) as Aluno[] ?? [];
+}
+
+async addAluno(dto: CreateAlunoDTO): Promise<Aluno> {
+  const { data, error } = await supabase.from('alunos').insert(dto).select().single();
+  if (error) {
+    if (error.code === '23505') throw new Error('Já existe um aluno com esta matrícula');
+    throw new Error(`Falha ao criar aluno: ${error.message}`);
   }
+  return data;
+}
+
+async updateAluno(dto: Partial<Aluno> & { id: string }): Promise<Aluno> {
+  const { data, error } = await supabase
+    .from('alunos')
+    .update({ nome: dto.nome, matricula: dto.matricula })
+    .eq('id', dto.id)
+    .select()
+    .single();
+  if (error) {
+    if (error.code === '23505') throw new Error('Já existe um aluno com esta matrícula');
+    throw new Error(`Falha ao atualizar aluno: ${error.message}`);
+  }
+  return data;
+}
 
   // ------------------ MATRÍCULAS ------------------
   async addMatricula(dto: { alunoId: string; turmaId: string }): Promise<Matricula> {
