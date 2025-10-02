@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { School, Users, BookOpen, UserCheck, Plus, X } from 'lucide-react';
+import { School, Users, BookOpen, UserCheck, Plus, X, Edit, Check } from 'lucide-react';
 import dbService from '../services/dbService';
 import type { Escola, Serie, Turma, Professor, Aluno } from '../types';
 import Card from '../components/Card';
@@ -16,11 +16,11 @@ const AdminPage: React.FC = () => {
   const [professores, setProfessores] = useState<Professor[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   
-  const [newEscola, setNewEscola] = useState({ nome: '', codigo_inep: '', localizacao: 'Urbano' });
+  const [newEscola, setNewEscola] = useState<Partial<Escola>>({ nome: '', codigo_inep: '', localizacao: 'Urbano' });
   const [newSerie, setNewSerie] = useState('');
   const [newTurma, setNewTurma] = useState('');
   const [newProfessor, setNewProfessor] = useState('');
-  const [newAluno, setNewAluno] = useState({ nome: '', matricula: '' });
+  const [newAluno, setNewAluno] = useState<Partial<Aluno>>({ nome: '', matricula: '' });
   
   const [selectedEscola, setSelectedEscola] = useState('');
   const [selectedSerie, setSelectedSerie] = useState('');
@@ -33,6 +33,9 @@ const AdminPage: React.FC = () => {
   
   const [alunoParaMatricular, setAlunoParaMatricular] = useState('');
   const [professorParaAssociar, setProfessorParaAssociar] = useState('');
+  
+  const [editingAlunoId, setEditingAlunoId] = useState<string | null>(null);
+  const [editingAluno, setEditingAluno] = useState<Partial<Aluno>>({ nome: '', matricula: '' });
   
   const loadInitialData = useCallback(async () => {
     try {
@@ -155,7 +158,7 @@ const AdminPage: React.FC = () => {
       await dbService.addProfessor({ nome: newProfessor });
       showNotification('Professor adicionado com sucesso!');
       setNewProfessor('');
-      loadInitialData();
+      await loadInitialData();
     } catch (e) { const msg = e instanceof Error ? e.message : String(e); showNotification(msg, 'error'); }
   };
   
@@ -163,11 +166,32 @@ const AdminPage: React.FC = () => {
     e.preventDefault();
     if (!newAluno.nome || !newAluno.matricula) return showNotification('Nome e matrícula do aluno são obrigatórios.', 'error');
     try {
-      await dbService.addAluno(newAluno);
+      await dbService.addAluno(newAluno as Aluno);
       showNotification('Aluno adicionado com sucesso!');
       setNewAluno({ nome: '', matricula: '' });
-      loadInitialData();
+      await loadInitialData();
     } catch (e) { const msg = e instanceof Error ? e.message : String(e); showNotification(msg, 'error'); }
+  };
+
+  const handleEditAluno = (aluno: Aluno) => {
+    setEditingAlunoId(aluno.id);
+    setEditingAluno({ nome: aluno.nome, matricula: aluno.matricula });
+  };
+
+  const handleSaveEditAluno = async () => {
+    if (!editingAlunoId || !editingAluno.nome || !editingAluno.matricula) return showNotification('Nome e matrícula são obrigatórios.', 'error');
+    try {
+      await dbService.updateAluno({ id: editingAlunoId, ...editingAluno } as Aluno);
+      showNotification('Aluno atualizado com sucesso!');
+      setEditingAlunoId(null);
+      setEditingAluno({ nome: '', matricula: '' });
+      await loadInitialData();
+    } catch (e) { const msg = e instanceof Error ? e.message : String(e); showNotification('Erro ao atualizar aluno: ' + msg, 'error'); }
+  };
+
+  const handleCancelEditAluno = () => {
+    setEditingAlunoId(null);
+    setEditingAluno({ nome: '', matricula: '' });
   };
   
   const handleMatricularAluno = async (e: React.FormEvent) => {
@@ -227,9 +251,9 @@ const AdminPage: React.FC = () => {
           <Card>
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2"><School className="text-blue-600"/>Gerenciar Escolas</h2>
             <form onSubmit={handleAddEscola} className="space-y-3 mb-4">
-              <Input value={newEscola.nome} onChange={(e) => setNewEscola({...newEscola, nome: e.target.value})} placeholder="Nome da nova escola"/>
-              <Input value={newEscola.codigo_inep} onChange={(e) => setNewEscola({...newEscola, codigo_inep: e.target.value})} placeholder="Código INEP"/>
-              <Select value={newEscola.localizacao} onChange={e => setNewEscola({ ...newEscola, localizacao: e.target.value as "Urbano" | "Rural" })}>
+              <Input value={newEscola.nome || ''} onChange={(e) => setNewEscola({...newEscola, nome: e.target.value})} placeholder="Nome da nova escola"/>
+              <Input value={newEscola.codigo_inep || ''} onChange={(e) => setNewEscola({...newEscola, codigo_inep: e.target.value})} placeholder="Código INEP"/>
+              <Select value={newEscola.localizacao || 'Urbano'} onChange={e => setNewEscola({ ...newEscola, localizacao: e.target.value as "Urbano" | "Rural" })}>
                   <option value="Urbano">Urbano</option>
                   <option value="Rural">Rural</option>
               </Select>
@@ -263,7 +287,7 @@ const AdminPage: React.FC = () => {
         </div>
 
         <div className="space-y-6">
-           <Card>
+          <Card>
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2"><UserCheck className="text-indigo-600"/>Gerenciar Professores</h2>
             <form onSubmit={handleAddProfessor} className="flex gap-3 mb-4">
               <Input value={newProfessor} onChange={(e) => setNewProfessor(e.target.value)} placeholder="Nome do novo professor" />
@@ -277,17 +301,51 @@ const AdminPage: React.FC = () => {
           <Card>
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2"><Users className="text-teal-600"/>Gerenciar Alunos</h2>
             <form onSubmit={handleAddAluno} className="space-y-3 mb-4">
-              <Input value={newAluno.nome} onChange={(e) => setNewAluno({...newAluno, nome: e.target.value})} placeholder="Nome do novo aluno" />
-              <Input value={newAluno.matricula} onChange={(e) => setNewAluno({...newAluno, matricula: e.target.value})} placeholder="Matrícula" />
+              <Input value={newAluno.nome || ''} onChange={(e) => setNewAluno({...newAluno, nome: e.target.value})} placeholder="Nome do novo aluno" />
+              <Input value={newAluno.matricula || ''} onChange={(e) => setNewAluno({...newAluno, matricula: e.target.value})} placeholder="Matrícula" />
               <Button type="submit" className="w-full"><Plus size={16} className="mr-2"/>Adicionar Aluno</Button>
             </form>
              <div className="max-h-32 overflow-y-auto border rounded-lg p-2 bg-gray-50">
-                {alunos.map(a => <div key={a.id} className="py-1 text-sm">{a.nome} ({a.matricula})</div>)}
+                {alunos.map(a => (
+                  <div key={a.id} className="py-1 text-sm flex justify-between items-center">
+                    {editingAlunoId === a.id ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <Input 
+                          value={editingAluno.nome || ''} 
+                          onChange={(e) => setEditingAluno({...editingAluno, nome: e.target.value})} 
+                          placeholder="Nome" 
+                          className="flex-1" 
+                          size="sm" 
+                        />
+                        <Input 
+                          value={editingAluno.matricula || ''} 
+                          onChange={(e) => setEditingAluno({...editingAluno, matricula: e.target.value})} 
+                          placeholder="Matrícula" 
+                          className="flex-1" 
+                          size="sm" 
+                        />
+                        <Button type="button" onClick={handleSaveEditAluno} size="sm" variant="success"><Check size={14} /></Button>
+                        <Button type="button" onClick={handleCancelEditAluno} size="sm" variant="outline"><X size={14} /></Button>
+                      </div>
+                    ) : (
+                      <>
+                        <span>{a.nome} ({a.matricula})</span>
+                        <button 
+                          onClick={() => handleEditAluno(a)} 
+                          className="text-blue-500 hover:text-blue-700 p-1"
+                          title="Editar"
+                        >
+                          <Edit size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
             </div>
           </Card>
 
           <Card>
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Gerenciar Turma Selecionada</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2"><Users className="text-green-600"/>Gerenciar Turma Selecionada</h2>
             {!selectedTurma ? (
               <p className="text-center text-gray-500 py-4">Selecione uma turma para ver os detalhes.</p>
             ) : (
