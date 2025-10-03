@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { School, Users, BookOpen, UserCheck, Plus, X, Edit, Check } from 'lucide-react';
-import dbService from '../services/dbService';
+import { dbService } from '../services/dbService';
 import type { Escola, Serie, Turma, Professor, Aluno } from '../types';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -31,7 +31,7 @@ const AdminPage: React.FC = () => {
   const [alunosNaTurma, setAlunosNaTurma] = useState<Aluno[]>([]);
   const [professoresNaTurma, setProfessoresNaTurma] = useState<Professor[]>([]);
   
-  const [alunoParaMatricular, setAlunoParaMatricular] = useState('');
+  const [alunoParaMatricular, setAlunoParaMatricular] = useState<string[]>([]);
   const [professorParaAssociar, setProfessorParaAssociar] = useState('');
   
   const [editingAlunoId, setEditingAlunoId] = useState<string | null>(null);
@@ -117,7 +117,7 @@ const AdminPage: React.FC = () => {
     e.preventDefault();
     if (!newEscola.nome || !newEscola.codigo_inep) return showNotification('Nome e INEP da escola são obrigatórios.', 'error');
     try {
-      const addedEscola = await dbService.createEscola(newEscola as Escola);
+      const addedEscola = await dbService.createEscola(newEscola as Omit<Escola, 'id' | 'created_at'>);
       showNotification('Escola adicionada com sucesso!');
       setNewEscola({ nome: '', codigo_inep: '', localizacao: 'Urbano' });
       await loadInitialData();
@@ -155,10 +155,10 @@ const AdminPage: React.FC = () => {
     e.preventDefault();
     if (!newProfessor) return showNotification('Digite o nome do professor.', 'error');
     try {
-      await dbService.addProfessor({ nome: newProfessor });
+      const addedProfessor = await dbService.addProfessor({ nome: newProfessor });
       showNotification('Professor adicionado com sucesso!');
       setNewProfessor('');
-      await loadInitialData();
+      setProfessores(prev => [...prev, addedProfessor]);
     } catch (e) { const msg = e instanceof Error ? e.message : String(e); showNotification(msg, 'error'); }
   };
   
@@ -166,10 +166,10 @@ const AdminPage: React.FC = () => {
     e.preventDefault();
     if (!newAluno.nome || !newAluno.matricula) return showNotification('Nome e matrícula do aluno são obrigatórios.', 'error');
     try {
-      await dbService.addAluno(newAluno as Aluno);
+      const addedAluno = await dbService.addAluno(newAluno as Omit<Aluno, 'id' | 'created_at'>);
       showNotification('Aluno adicionado com sucesso!');
       setNewAluno({ nome: '', matricula: '' });
-      await loadInitialData();
+      setAlunos(prev => [...prev, addedAluno]);
     } catch (e) { const msg = e instanceof Error ? e.message : String(e); showNotification(msg, 'error'); }
   };
 
@@ -183,9 +183,13 @@ const AdminPage: React.FC = () => {
     try {
       await dbService.updateAluno({ id: editingAlunoId, ...editingAluno } as Aluno);
       showNotification('Aluno atualizado com sucesso!');
+      setAlunos(prev => prev.map(a => 
+        a.id === editingAlunoId 
+          ? { ...a, nome: editingAluno.nome || '', matricula: editingAluno.matricula || '' } 
+          : a
+      ));
       setEditingAlunoId(null);
       setEditingAluno({ nome: '', matricula: '' });
-      await loadInitialData();
     } catch (e) { const msg = e instanceof Error ? e.message : String(e); showNotification('Erro ao atualizar aluno: ' + msg, 'error'); }
   };
 
@@ -194,24 +198,57 @@ const AdminPage: React.FC = () => {
     setEditingAluno({ nome: '', matricula: '' });
   };
   
-  const handleMatricularAluno = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!alunoParaMatricular || !selectedTurma) return;
+  const handleToggleAlunoParaMatricular = (alunoId: string) => {
+    setAlunoParaMatricular(prev =>
+      prev.includes(alunoId)
+        ? prev.filter(id => id !== alunoId)
+        : [...prev, alunoId]
+    );
+  };
+
+  const handleMatricularAlunos = async () => {
+    if (!alunoParaMatricular.length || !selectedTurma) return;
+
+    const alunosToMatriculate = alunosDisponiveis.filter(a => alunoParaMatricular.includes(a.id));
+    if (alunosToMatriculate.length === 0) {
+      showNotification('Nenhum aluno selecionado.', 'error');
+      return;
+    }
+
+    const originalAlunosNaTurma = [...alunosNaTurma];
+    
+    const novosAlunos = [...alunosNaTurma, ...alunosToMatriculate].sort((a, b) => a.nome.localeCompare(b.nome));
+    setAlunosNaTurma(novosAlunos);
+
     try {
-      await dbService.addMatricula({ alunoId: alunoParaMatricular, turmaId: selectedTurma });
-      showNotification('Aluno matriculado!');
-      setAlunosNaTurma(await dbService.getAlunosByTurma(selectedTurma));
-      setAlunoParaMatricular('');
-    } catch (e) { const msg = e instanceof Error ? e.message : String(e); showNotification(msg, 'error'); }
+      await Promise.all(
+        alunosToMatriculate.map(aluno => 
+          dbService.addMatricula({ alunoId: aluno.id, turmaId: selectedTurma })
+        )
+      );
+      showNotification(`${alunosToMatriculate.length} ${alunosToMatriculate.length > 1 ? 'alunos matriculados' : 'aluno matriculado'} com sucesso!`);
+      setAlunoParaMatricular([]);
+    } catch (e) { 
+      const msg = e instanceof Error ? e.message : String(e); 
+      showNotification(`Erro ao matricular: ${msg}`, 'error'); 
+      setAlunosNaTurma(originalAlunosNaTurma);
+    }
   };
   
   const handleDesmatricularAluno = async (alunoId: string) => {
     if (!selectedTurma) return;
+    
+    const originalAlunosNaTurma = [...alunosNaTurma];
+    setAlunosNaTurma(alunosNaTurma.filter(a => a.id !== alunoId));
+
     try {
       await dbService.removeMatricula({ alunoId, turmaId: selectedTurma });
       showNotification('Aluno desmatriculado.');
-      setAlunosNaTurma(alunosNaTurma.filter(a => a.id !== alunoId));
-    } catch (e) { const msg = e instanceof Error ? e.message : String(e); showNotification(msg, 'error'); }
+    } catch (e) { 
+      const msg = e instanceof Error ? e.message : String(e); 
+      showNotification(msg, 'error');
+      setAlunosNaTurma(originalAlunosNaTurma);
+    }
   };
   
   const handleAssociarProfessor = async (e: React.FormEvent) => {
@@ -314,15 +351,13 @@ const AdminPage: React.FC = () => {
                           value={editingAluno.nome || ''} 
                           onChange={(e) => setEditingAluno({...editingAluno, nome: e.target.value})} 
                           placeholder="Nome" 
-                          className="flex-1" 
-                          size="sm" 
+                          className="flex-1 text-sm p-1"
                         />
                         <Input 
                           value={editingAluno.matricula || ''} 
                           onChange={(e) => setEditingAluno({...editingAluno, matricula: e.target.value})} 
                           placeholder="Matrícula" 
-                          className="flex-1" 
-                          size="sm" 
+                          className="flex-1 text-sm p-1"
                         />
                         <Button type="button" onClick={handleSaveEditAluno} size="sm" variant="success"><Check size={14} /></Button>
                         <Button type="button" onClick={handleCancelEditAluno} size="sm" variant="outline"><X size={14} /></Button>
@@ -349,24 +384,44 @@ const AdminPage: React.FC = () => {
             {!selectedTurma ? (
               <p className="text-center text-gray-500 py-4">Selecione uma turma para ver os detalhes.</p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
                   <h3 className="font-semibold mb-2">Alunos na Turma ({alunosNaTurma.length})</h3>
-                  <div className="max-h-24 overflow-y-auto border rounded-lg p-2 bg-gray-50 mb-2">
-                     {alunosNaTurma.map(a => (
-                       <div key={a.id} className="flex justify-between items-center py-1 text-sm">
-                         <span>{a.nome}</span>
-                         <button onClick={() => handleDesmatricularAluno(a.id)} className="text-red-500 hover:text-red-700"><X size={14}/></button>
-                       </div>
-                     ))}
+                  <div className="max-h-24 overflow-y-auto border rounded-lg p-2 bg-gray-50 mb-4">
+                     {alunosNaTurma.length > 0 ? (
+                        alunosNaTurma.map(a => (
+                          <div key={a.id} className="flex justify-between items-center py-1 text-sm">
+                            <span>{a.nome}</span>
+                            <button onClick={() => handleDesmatricularAluno(a.id)} className="text-red-500 hover:text-red-700 p-1"><X size={14}/></button>
+                          </div>
+                        ))
+                     ) : (
+                       <p className="text-sm text-gray-500 text-center py-2">Nenhum aluno matriculado.</p>
+                     )}
                   </div>
-                  <form onSubmit={handleMatricularAluno} className="flex gap-2">
-                    <Select value={alunoParaMatricular} onChange={e => setAlunoParaMatricular(e.target.value)}>
-                      <option value="">Matricular aluno...</option>
-                      {alunosDisponiveis.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
-                    </Select>
-                    <Button type="submit" variant="success" size="sm" disabled={!alunoParaMatricular}>Matricular</Button>
-                  </form>
+
+                  <h3 className="font-semibold mb-2 text-sm text-gray-700">Matricular novos alunos</h3>
+                  <div className="max-h-24 overflow-y-auto border rounded-lg p-2 bg-gray-50 mb-2">
+                    {alunosDisponiveis.length > 0 ? (
+                      alunosDisponiveis.map(aluno => (
+                        <label key={aluno.id} htmlFor={`aluno-matricular-${aluno.id}`} className="flex items-center p-1 rounded hover:bg-gray-200 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            id={`aluno-matricular-${aluno.id}`}
+                            checked={alunoParaMatricular.includes(aluno.id)}
+                            onChange={() => handleToggleAlunoParaMatricular(aluno.id)}
+                            className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm">{aluno.nome}</span>
+                        </label>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-500 text-center py-2">Nenhum aluno disponível para matricular.</p>
+                    )}
+                  </div>
+                  <Button onClick={handleMatricularAlunos} variant="success" size="sm" disabled={alunoParaMatricular.length === 0} className="w-full mt-2">
+                    Matricular Selecionados ({alunoParaMatricular.length})
+                  </Button>
                 </div>
                  <div>
                   <h3 className="font-semibold mb-2">Professores na Turma ({professoresNaTurma.length})</h3>

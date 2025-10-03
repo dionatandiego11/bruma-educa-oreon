@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
-import dbService from '../services/dbService';
+import { dbService } from '../services/dbService';
 import type { Escola, Serie, Turma, Aluno, Provao, Questao, Alternativa } from '../types';
 import Card from '../components/Card';
 import Select from '../components/Select';
@@ -55,6 +54,7 @@ const InsertDataPage: React.FC = () => {
       setProvoes([]);
     }
     setSelectedAluno('');
+    setSelectedProvao('');
   }, [selectedTurma, showNotification]);
 
   useEffect(() => {
@@ -89,7 +89,6 @@ const InsertDataPage: React.FC = () => {
     setRespostas(prev => ({ ...prev, [questaoId]: valor }));
     try {
       await dbService.addScore({ alunoId: selectedAluno, questaoId: questaoId, resposta: valor });
-      // showNotification(`Resposta da questão salva!`, 'success'); // Can be too noisy
     } catch {
       showNotification('Erro ao salvar resposta.', 'error');
       setRespostas(prev => ({ ...prev, [questaoId]: currentResponse }));
@@ -102,28 +101,45 @@ const InsertDataPage: React.FC = () => {
     <PageLayout title="Inserir Resultados do Aluno">
       <Card>
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Select value={selectedEscola} onChange={e => setSelectedEscola(e.target.value)}>
-              <option value="">Selecione a Escola</option>
-              {escolas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
-            </Select>
-            <Select value={selectedSerie} onChange={e => setSelectedSerie(e.target.value)} disabled={!selectedEscola}>
-              <option value="">Selecione a Série</option>
-              {series.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
-            </Select>
-            <Select value={selectedTurma} onChange={e => setSelectedTurma(e.target.value)} disabled={!selectedSerie}>
-              <option value="">Selecione a Turma</option>
-              {turmas.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
-            </Select>
-            <Select value={selectedProvao} onChange={e => setSelectedProvao(e.target.value)} disabled={!selectedTurma}>
-              <option value="">Selecione o Provão</option>
-              {provoes.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-            </Select>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="escola-select" className="block text-sm font-medium text-gray-700 mb-1">Escola</label>
+              <Select id="escola-select" value={selectedEscola} onChange={e => setSelectedEscola(e.target.value)}>
+                <option value="">Selecione a Escola</option>
+                {escolas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+              </Select>
+            </div>
+            <div>
+              <label htmlFor="serie-select" className="block text-sm font-medium text-gray-700 mb-1">Série</label>
+              <Select id="serie-select" value={selectedSerie} onChange={e => setSelectedSerie(e.target.value)} disabled={!selectedEscola}>
+                <option value="">Selecione a Série</option>
+                {series.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
+              </Select>
+            </div>
+            <div>
+              <label htmlFor="turma-select" className="block text-sm font-medium text-gray-700 mb-1">Turma</label>
+              <Select id="turma-select" value={selectedTurma} onChange={e => setSelectedTurma(e.target.value)} disabled={!selectedSerie}>
+                <option value="">Selecione a Turma</option>
+                {turmas.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+              </Select>
+            </div>
           </div>
-          <Select value={selectedAluno} onChange={e => setSelectedAluno(e.target.value)} disabled={!selectedTurma}>
-            <option value="">Selecione o Aluno</option>
-            {alunos.map(a => <option key={a.id} value={a.id}>{a.nome} ({a.matricula})</option>)}
-          </Select>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label htmlFor="provao-select" className="block text-sm font-medium text-gray-700 mb-1">Provão</label>
+                <Select id="provao-select" value={selectedProvao} onChange={e => setSelectedProvao(e.target.value)} disabled={!selectedTurma}>
+                  <option value="">Selecione o Provão</option>
+                  {provoes.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                </Select>
+            </div>
+            <div>
+                <label htmlFor="aluno-select" className="block text-sm font-medium text-gray-700 mb-1">Aluno</label>
+                <Select id="aluno-select" value={selectedAluno} onChange={e => setSelectedAluno(e.target.value)} disabled={!selectedProvao}>
+                    <option value="">Selecione o Aluno</option>
+                    {alunos.map(a => <option key={a.id} value={a.id}>{a.nome} ({a.matricula})</option>)}
+                </Select>
+            </div>
+          </div>
         </div>
         {selectedAluno && selectedProvao && questoes.length > 0 && (
           <div className="border-t pt-6 mt-6">

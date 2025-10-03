@@ -197,7 +197,7 @@ async updateAluno(dto: Partial<Aluno> & { id: string }): Promise<Aluno> {
 
   // ------------------ QUESTÕES ------------------
   async getQuestoesByProvao(provaoId: string): Promise<Questao[]> {
-    const { data, error } = await supabase.from('questoes').select('*').eq('provao_id', provaoId).order('ordem');
+    const { data, error } = await supabase.from('questoes').select('*').eq('provao_id', provaoId).order('created_at');
     if (error) throw new Error(`Falha ao buscar questões: ${error.message}`);
     return data || [];
   }
@@ -327,4 +327,3 @@ async updateAluno(dto: Partial<Aluno> & { id: string }): Promise<Aluno> {
 }
 
 export const dbService = new DatabaseService();
-export default dbService;

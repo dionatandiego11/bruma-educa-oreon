@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Edit, Trash2, Plus, Save, ChevronDown, ChevronRight } from 'lucide-react';
 import type { Provao, Questao, Disciplina, Alternativa, Escola, Serie, Turma } from '../types';
-import dbService from '../services/dbService';
+import { dbService } from '../services/dbService';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Input from '../components/Input';
@@ -104,13 +103,14 @@ const CreateProvaoPage: React.FC = () => {
       if (selectedProvao) {
         const updatedProvao = await dbService.updateProvao(selectedProvao.id, { nome: newProvaoName, turmaIds });
         setSelectedProvao(updatedProvao);
+        setProvoes(provoes.map(p => p.id === updatedProvao.id ? updatedProvao : p));
         showNotification('Provão atualizado com sucesso!');
       } else {
         const createdProvao = await dbService.addProvao({ nome: newProvaoName, turmaIds });
+        setProvoes([createdProvao, ...provoes]);
         setSelectedProvao(createdProvao);
         showNotification('Provão criado com sucesso!');
       }
-      loadProvoes();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       showNotification(msg, 'error');

@@ -1,19 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 
-// --- Lendo as variáveis de ambiente ---
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+// --- Supabase Credentials ---
+// NOTE: Hardcoding credentials here as a workaround for a build environment
+// that does not correctly handle .env files and `import.meta.env`.
+// In a standard Vite setup, these would be loaded from a .env file.
+const supabaseUrl = 'https://llnbtdgkebbmyofkpywk.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxsbmJ0ZGdrZWJibXlvZmtweXdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4OTA3ODksImV4cCI6MjA3NDQ2Njc4OX0.JsXstMd0UYnaqdvRxTwGHx68_67hu-FbchkQ_llG6Ws';
 
-// --- Check das credenciais ---
+
 export const isSupabaseConfigured = !!supabaseUrl && !!supabaseAnonKey;
 
+// This check is now less critical but kept for robustness.
 if (!isSupabaseConfigured) {
   console.error(
-    'ERRO: VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY não estão configuradas no arquivo .env'
+    'ERROR: Supabase URL or Anon Key are not configured in services/supabaseClient.ts'
   );
 }
 
-// --- Cria e exporta o cliente global ---
 export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 
 export default supabase;

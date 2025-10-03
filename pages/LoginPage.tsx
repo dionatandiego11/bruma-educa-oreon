@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { BookOpen, GraduationCap, Lock, Mail, LogIn } from 'lucide-react';
+import { BookOpen, GraduationCap, Lock, Mail, LogIn, Loader } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -10,7 +9,7 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { signIn, user } = useAuth();
+  const { signIn, user, loading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,18 +27,19 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  if (user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Você já está logado!</h2>
-          <p className="text-gray-600 mb-6">Redirecionando para a página inicial...</p>
-          <Link to="/" className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-transform transform hover:scale-105">
-            Ir para Home
-          </Link>
+  if (loading) {
+     return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="flex flex-col items-center">
+            <Loader className="w-12 h-12 text-blue-600 animate-spin" />
+            <p className="mt-4 text-gray-600">Carregando...</p>
         </div>
       </div>
     );
+  }
+
+  if (user) {
+    return <Navigate to="/" replace />;
   }
 
   return (

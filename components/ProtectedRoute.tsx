@@ -1,9 +1,9 @@
+
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Loader } from 'lucide-react';
 
-// FIX: Changed children type from JSX.Element to React.ReactElement to resolve JSX namespace issue.
 export const ProtectedRoute = ({ children }: { children: React.ReactElement }) => {
   const { user, loading } = useAuth();
 

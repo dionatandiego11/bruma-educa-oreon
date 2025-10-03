@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, createContext, useContext, ReactNode } from 'react';
 
 type NotificationType = 'success' | 'error';
@@ -9,7 +10,6 @@ interface NotificationState {
 
 interface NotificationContextType {
   notification: NotificationState | null;
-  // FIX: Made the `type` parameter optional to align with implementation and fix call-site errors.
   showNotification: (message: string, type?: NotificationType) => void;
   hideNotification: () => void;
 }
@@ -18,7 +18,6 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [notification, setNotification] = useState<NotificationState | null>(null);
-  // FIX: Changed NodeJS.Timeout to a more environment-agnostic ReturnType<typeof setTimeout> for browser compatibility.
   const [timeoutId, setTimeoutId] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const hideNotification = useCallback(() => {

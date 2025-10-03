@@ -6,7 +6,7 @@ interface ButtonProps {
   onClick?: React.MouseEventHandler<HTMLButtonElement>;
   type?: 'button' | 'submit';
   disabled?: boolean;
-  variant?: 'primary' | 'secondary' | 'success' | 'danger';
+  variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -25,7 +25,8 @@ const Button: React.FC<ButtonProps> = ({
     primary: 'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500',
     secondary: 'bg-gray-600 hover:bg-gray-700 text-white focus:ring-gray-500',
     success: 'bg-emerald-600 hover:bg-emerald-700 text-white focus:ring-emerald-500',
-    danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500'
+    danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
+    outline: 'bg-transparent border border-gray-300 text-gray-700 hover:bg-gray-100 focus:ring-gray-300'
   };
   const sizes = {
     sm: 'px-3 py-1.5 text-sm',

@@ -1,18 +1,13 @@
 
 import React from 'react';
 
-interface SelectProps {
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   children: React.ReactNode;
-  disabled?: boolean;
-  className?: string;
 }
 
-const Select: React.FC<SelectProps> = ({ value, onChange, children, disabled = false, className = '' }) => (
+const Select: React.FC<SelectProps> = ({ children, disabled = false, className = '', ...props }) => (
   <select
-    value={value}
-    onChange={onChange}
+    {...props}
     disabled={disabled}
     className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''} ${className}`}
   >

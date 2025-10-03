@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { Users, Trophy, FileText, AlertCircle, Loader, BarChart3 } from 'lucide-react';
-import dbService from '../services/dbService';
+import { dbService } from '../services/dbService';
 import type { Escola, Serie, Turma, Aluno, Provao, Questao, Alternativa } from '../types';
 import Card from '../components/Card';
 import Select from '../components/Select';

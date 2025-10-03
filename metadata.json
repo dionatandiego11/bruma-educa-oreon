@@ -1,5 +1,5 @@
 {
   "name": "EDUCA-BRUMA",
-  "description": "A comprehensive system for managing school exams ('provões'), schools, classes, students, and analyzing results for the Brumadinho Municipal Education Secretariat.",
+  "description": "A comprehensive educational management system for schools, students, teachers, and standardized tests ('provões'), using Supabase for the backend.",
   "requestFramePermissions": []
 }

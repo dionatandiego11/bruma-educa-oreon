@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, BarChart3, Users, CheckCircle, Hash, TrendingUp, Loader } from 'lucide-react';
-import dbService from '../services/dbService';
+import { X, BarChart3 } from 'lucide-react';
+import { dbService } from '../services/dbService';
 import type { Questao, Alternativa, EstatisticasQuestao } from '../types';
 import Button from './Button';
+import { Loader } from 'lucide-react';
 
 interface QuestionStatsModalProps {
   questaoId: string;
