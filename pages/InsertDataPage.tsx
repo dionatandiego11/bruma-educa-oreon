@@ -86,11 +86,23 @@ const InsertDataPage: React.FC = () => {
       return;
     }
     const currentResponse = respostas[questaoId];
-    setRespostas(prev => ({ ...prev, [questaoId]: valor }));
+    const newResponse = currentResponse === valor ? null : valor;
+
+    // Optimistically update UI
+    setRespostas(prev => ({ ...prev, [questaoId]: newResponse }));
+
     try {
-      await dbService.addScore({ alunoId: selectedAluno, questaoId: questaoId, resposta: valor });
-    } catch {
-      showNotification('Erro ao salvar resposta.', 'error');
+      if (newResponse) {
+        // Add or update the score
+        await dbService.addScore({ alunoId: selectedAluno, questaoId: questaoId, resposta: newResponse });
+      } else {
+        // Delete the score if it exists
+        await dbService.deleteScore({ alunoId: selectedAluno, questaoId: questaoId });
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      showNotification(`Erro ao salvar resposta: ${msg}`, 'error');
+      // Revert UI on failure
       setRespostas(prev => ({ ...prev, [questaoId]: currentResponse }));
     }
   }, [selectedAluno, showNotification, respostas]);

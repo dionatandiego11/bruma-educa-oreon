@@ -203,7 +203,7 @@ async updateAluno(dto: Partial<Aluno> & { id: string }): Promise<Aluno> {
   }
 
   async addQuestao(dto: CreateQuestaoDTO): Promise<Questao> {
-    const { data, error } = await supabase.from('questoes').insert({ provao_id: dto.provaoId, disciplina: dto.disciplina, habilidade_codigo: dto.habilidade_codigo, ordem: dto.ordem }).select().single();
+    const { data, error } = await supabase.from('questoes').insert(dto).select().single();
     if (error) throw new Error(`Falha ao criar questão: ${error.message}`);
     return data;
   }
@@ -237,6 +237,14 @@ async updateAluno(dto: Partial<Aluno> & { id: string }): Promise<Aluno> {
     const { data, error } = await supabase.from('scores').upsert({ aluno_id: dto.alunoId, questao_id: dto.questaoId, resposta: dto.resposta }, { onConflict: 'aluno_id,questao_id' }).select().single();
     if (error) throw new Error(`Falha ao salvar resposta: ${error.message}`);
     return data;
+  }
+
+  async deleteScore(dto: { alunoId: string; questaoId: string }): Promise<void> {
+    const { error } = await supabase
+      .from('scores')
+      .delete()
+      .match({ aluno_id: dto.alunoId, questao_id: dto.questaoId });
+    if (error) throw new Error(`Falha ao remover resposta: ${error.message}`);
   }
 
   async getScoreByAlunoQuestao(alunoId: string, questaoId: string): Promise<Score | null> {

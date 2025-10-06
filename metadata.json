@@ -1,5 +1,5 @@
 {
-  "name": "EDUCA-BRUMA",
-  "description": "A comprehensive educational management system for schools, students, teachers, and standardized tests ('provões'), using Supabase for the backend.",
+  "name": "Educa-Bruma: School Exam Management",
+  "description": "A comprehensive system for managing schools, classes, teachers, students, and exams. Create exams, input results, and analyze performance data for the Brumadinho education department.",
   "requestFramePermissions": []
 }

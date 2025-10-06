@@ -2,24 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Trophy, FileText, AlertCircle, Loader, BarChart3 } from 'lucide-react';
 import { dbService } from '../services/dbService';
-import type { Escola, Serie, Turma, Aluno, Provao, Questao, Alternativa } from '../types';
+import type { Escola, Serie, Turma, Aluno, Provao, Questao, Alternativa, AlunoResult } from '../types';
 import Card from '../components/Card';
 import Select from '../components/Select';
 import PageLayout from '../components/PageLayout';
 import QuestionStatsModal from '../components/QuestionStatsModal';
-
-interface AlunoResult {
-  aluno: Aluno;
-  totalQuestoes: number;
-  acertos: number;
-  percentual: number;
-  detalhes: {
-    questao: Questao;
-    respostaAluno: Alternativa | null;
-    gabarito: Alternativa;
-    acertou: boolean;
-  }[];
-}
 
 const ResultsPage: React.FC = () => {
   const [selectedEscola, setSelectedEscola] = useState('');

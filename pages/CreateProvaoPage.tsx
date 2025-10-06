@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Edit, Trash2, Plus, Save, ChevronDown, ChevronRight } from 'lucide-react';
 import type { Provao, Questao, Disciplina, Alternativa, Escola, Serie, Turma } from '../types';
@@ -8,6 +9,93 @@ import Input from '../components/Input';
 import Select from '../components/Select';
 import PageLayout from '../components/PageLayout';
 import { useNotification } from '../hooks/useNotification';
+
+interface TurmaSelectorProps {
+  escolas: Escola[];
+  series: Record<string, Serie[]>;
+  turmas: Record<string, Turma[]>;
+  selectedTurmaIds: Set<string>;
+  onToggleTurma: (turmaId: string) => void;
+  onFetchSeries: (escolaId: string) => void;
+  onFetchTurmas: (serieId: string) => void;
+}
+
+const TurmaSelector: React.FC<TurmaSelectorProps> = ({
+  escolas,
+  series,
+  turmas,
+  selectedTurmaIds,
+  onToggleTurma,
+  onFetchSeries,
+  onFetchTurmas,
+}) => {
+  const [openEscolas, setOpenEscolas] = useState<Set<string>>(new Set());
+  const [openSeries, setOpenSeries] = useState<Set<string>>(new Set());
+
+  const toggleEscola = (id: string) => {
+    const newSet = new Set(openEscolas);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+      onFetchSeries(id);
+    }
+    setOpenEscolas(newSet);
+  };
+
+  const toggleSerie = (id: string) => {
+    const newSet = new Set(openSeries);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+      onFetchTurmas(id);
+    }
+    setOpenSeries(newSet);
+  };
+
+  return (
+    <div className="border rounded-lg p-2 max-h-60 overflow-y-auto bg-gray-50">
+      {escolas.map(escola => (
+        <div key={escola.id}>
+          <div onClick={() => toggleEscola(escola.id)} className="flex items-center cursor-pointer p-1 rounded hover:bg-gray-200">
+            {openEscolas.has(escola.id) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            <span className="font-semibold ml-1">{escola.nome}</span>
+          </div>
+          {openEscolas.has(escola.id) && (
+            <div className="pl-4">
+              {(series[escola.id] || []).map(serie => (
+                <div key={serie.id}>
+                  <div onClick={() => toggleSerie(serie.id)} className="flex items-center cursor-pointer p-1 rounded hover:bg-gray-200">
+                    {openSeries.has(serie.id) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    <span className="ml-1">{serie.nome}</span>
+                  </div>
+                  {openSeries.has(serie.id) && (
+                    <div className="pl-6">
+                      {(turmas[serie.id] || []).map(turma => (
+                        <div key={turma.id} className="flex items-center p-1">
+                          <input
+                            type="checkbox"
+                            id={`turma-${turma.id}`}
+                            checked={selectedTurmaIds.has(turma.id)}
+                            onChange={() => onToggleTurma(turma.id)}
+                            className="mr-2"
+                          />
+                          <label htmlFor={`turma-${turma.id}`}>{turma.nome}</label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
 
 const CreateProvaoPage: React.FC = () => {
   const { showNotification } = useNotification();
@@ -121,7 +209,8 @@ const CreateProvaoPage: React.FC = () => {
     e.preventDefault();
     if (!selectedProvao || !newQuestao.habilidade_codigo) return;
     try {
-      const novaQuestao = await dbService.addQuestao({ ...newQuestao, provaoId: selectedProvao.id });
+      // FIX: Corrected property name from 'provaoId' to 'provao_id' to match the 'CreateQuestaoDTO' type.
+      const novaQuestao = await dbService.addQuestao({ ...newQuestao, provao_id: selectedProvao.id });
       setQuestoes([...questoes, novaQuestao]);
       setNewQuestao({ habilidade_codigo: '', disciplina: 'Português' as Disciplina });
       showNotification('Questão adicionada!');
@@ -174,78 +263,27 @@ const CreateProvaoPage: React.FC = () => {
 
   const fetchSeriesForEscola = useCallback(async (escolaId: string) => {
     if (!series[escolaId]) {
-      const seriesData = await dbService.getSeriesByEscola(escolaId);
-      setSeries(prev => ({...prev, [escolaId]: seriesData}));
+      try {
+        const seriesData = await dbService.getSeriesByEscola(escolaId);
+        setSeries(prev => ({...prev, [escolaId]: seriesData}));
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        showNotification(msg, 'error');
+      }
     }
-  }, [series]);
+  }, [series, showNotification]);
 
   const fetchTurmasForSerie = useCallback(async (serieId: string) => {
     if (!turmas[serieId]) {
-      const turmasData = await dbService.getTurmasBySerie(serieId);
-      setTurmas(prev => ({...prev, [serieId]: turmasData}));
+      try {
+        const turmasData = await dbService.getTurmasBySerie(serieId);
+        setTurmas(prev => ({...prev, [serieId]: turmasData}));
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        showNotification(msg, 'error');
+      }
     }
-  }, [turmas]);
-  
-  const TurmaSelector = () => {
-    const [openEscolas, setOpenEscolas] = useState<Set<string>>(new Set());
-    const [openSeries, setOpenSeries] = useState<Set<string>>(new Set());
-
-    const toggleEscola = (id: string) => {
-      const newSet = new Set(openEscolas);
-      if (newSet.has(id)) newSet.delete(id);
-      else { newSet.add(id); fetchSeriesForEscola(id); }
-      setOpenEscolas(newSet);
-    };
-    
-    const toggleSerie = (id: string) => {
-        const newSet = new Set(openSeries);
-        if (newSet.has(id)) newSet.delete(id);
-        else { newSet.add(id); fetchTurmasForSerie(id); }
-        setOpenSeries(newSet);
-    };
-
-    return (
-      <div className="border rounded-lg p-2 max-h-60 overflow-y-auto bg-gray-50">
-        {escolas.map(escola => (
-          <div key={escola.id}>
-            <div onClick={() => toggleEscola(escola.id)} className="flex items-center cursor-pointer p-1 rounded hover:bg-gray-200">
-              {openEscolas.has(escola.id) ? <ChevronDown size={16}/> : <ChevronRight size={16}/>}
-              <span className="font-semibold ml-1">{escola.nome}</span>
-            </div>
-            {openEscolas.has(escola.id) && (
-              <div className="pl-4">
-                {(series[escola.id] || []).map(serie => (
-                  <div key={serie.id}>
-                    <div onClick={() => toggleSerie(serie.id)} className="flex items-center cursor-pointer p-1 rounded hover:bg-gray-200">
-                      {openSeries.has(serie.id) ? <ChevronDown size={16}/> : <ChevronRight size={16}/>}
-                      <span className="ml-1">{serie.nome}</span>
-                    </div>
-                    {openSeries.has(serie.id) && (
-                      <div className="pl-6">
-                        {(turmas[serie.id] || []).map(turma => (
-                          <div key={turma.id} className="flex items-center p-1">
-                            <input
-                              type="checkbox"
-                              id={`turma-${turma.id}`}
-                              checked={selectedTurmaIds.has(turma.id)}
-                              onChange={() => toggleTurmaSelection(turma.id)}
-                              className="mr-2"
-                            />
-                            <label htmlFor={`turma-${turma.id}`}>{turma.nome}</label>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  };
-
+  }, [turmas, showNotification]);
 
   return (
     <PageLayout title="Gerenciar Provões">
@@ -261,7 +299,15 @@ const CreateProvaoPage: React.FC = () => {
                       <Input placeholder="Nome do Provão" value={newProvaoName} onChange={e => setNewProvaoName(e.target.value)} />
                       <div>
                           <label className="font-semibold block mb-2">Associar Turmas ({selectedTurmaIds.size})</label>
-                          <TurmaSelector />
+                          <TurmaSelector 
+                            escolas={escolas}
+                            series={series}
+                            turmas={turmas}
+                            selectedTurmaIds={selectedTurmaIds}
+                            onToggleTurma={toggleTurmaSelection}
+                            onFetchSeries={fetchSeriesForEscola}
+                            onFetchTurmas={fetchTurmasForSerie}
+                          />
                       </div>
                        <Button onClick={handleSaveProvao} className="w-full">
                           <Save size={16} className="mr-2"/>

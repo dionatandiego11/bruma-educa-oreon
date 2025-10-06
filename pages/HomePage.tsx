@@ -53,6 +53,7 @@ const HomePage: React.FC = () => {
     navigate('/login');
   };
 
+  // FIX: Corrected the type definition for actionCardsData to be an array of ActionCardProps.
   const actionCardsData: ActionCardProps[] = [
     {
       icon: School,
