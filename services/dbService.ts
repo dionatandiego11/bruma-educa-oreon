@@ -92,40 +92,89 @@ class DatabaseService {
   }
 
   // ------------------ ALUNOS ------------------
-async getAlunos(): Promise<Aluno[]> {
-  const { data, error } = await supabase.from('alunos').select('*').order('nome');
-  if (error) throw new Error(`Falha ao buscar alunos: ${error.message}`);
-  return data || [];
-}
-
-async getAlunosByTurma(turmaId: string): Promise<Aluno[]> {
-  const { data, error } = await supabase.from('matriculas').select('aluno:alunos(*)').eq('turma_id', turmaId).eq('ativo', true);
-  if (error) throw new Error(`Falha ao buscar alunos da turma: ${error.message}`);
-  return data?.flatMap((m: any) => m.aluno).filter(Boolean) as Aluno[] ?? [];
-}
-
-async addAluno(dto: CreateAlunoDTO): Promise<Aluno> {
-  const { data, error } = await supabase.from('alunos').insert(dto).select().single();
-  if (error) {
-    if (error.code === '23505') throw new Error('Já existe um aluno com esta matrícula');
-    throw new Error(`Falha ao criar aluno: ${error.message}`);
+  async getAlunos(page: number = 1, pageSize: number = 1000): Promise<{ data: Aluno[]; count: number }> {
+    const start = (page - 1) * pageSize;
+    const { data, error, count } = await supabase
+      .from('alunos')
+      .select('*', { count: 'exact' })
+      .order('nome')
+      .range(start, start + pageSize - 1);
+    if (error) throw new Error(`Falha ao buscar alunos: ${error.message}`);
+    return { data: data || [], count: count || 0 };
   }
-  return data;
-}
 
-async updateAluno(dto: Partial<Aluno> & { id: string }): Promise<Aluno> {
-  const { data, error } = await supabase
-    .from('alunos')
-    .update({ nome: dto.nome, matricula: dto.matricula })
-    .eq('id', dto.id)
-    .select()
-    .single();
-  if (error) {
-    if (error.code === '23505') throw new Error('Já existe um aluno com esta matrícula');
-    throw new Error(`Falha ao atualizar aluno: ${error.message}`);
+  // Nova: Carrega TODOS os alunos em lotes (para estados completos no frontend)
+  async fetchAllAlunos(): Promise<Aluno[]> {
+    let allAlunos: Aluno[] = [];
+    let page = 1;
+    const pageSize = 1000; // Máximo por consulta
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, count } = await this.getAlunos(page, pageSize);
+      allAlunos = [...allAlunos, ...data];
+      hasMore = data.length === pageSize && allAlunos.length < count;
+      page++;
+    }
+
+    return allAlunos.sort((a, b) => a.nome.localeCompare(b.nome)); // Ordenação final client-side se necessário
   }
-  return data;
-}
+
+  async getAlunosByTurma(turmaId: string, page: number = 1, pageSize: number = 1000): Promise<{ data: Aluno[]; count: number }> {
+    const start = (page - 1) * pageSize;
+    const { data, error, count } = await supabase
+      .from('matriculas')
+      .select('aluno:alunos(*)', { count: 'exact' })
+      .eq('turma_id', turmaId)
+      .eq('ativo', true)
+      .order('nome', { foreignTable: 'alunos' })
+      .range(start, start + pageSize - 1);
+    if (error) throw new Error(`Falha ao buscar alunos da turma: ${error.message}`);
+    return { 
+      data: (data?.flatMap((m: any) => m.aluno).filter(Boolean) as Aluno[]) || [], 
+      count: count || 0 
+    };
+  }
+
+  // Nova: Carrega TODOS os alunos de uma turma em lotes
+  async fetchAllAlunosByTurma(turmaId: string): Promise<Aluno[]> {
+    let allAlunos: Aluno[] = [];
+    let page = 1;
+    const pageSize = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, count } = await this.getAlunosByTurma(turmaId, page, pageSize);
+      allAlunos = [...allAlunos, ...data];
+      hasMore = data.length === pageSize && allAlunos.length < count;
+      page++;
+    }
+
+    return allAlunos.sort((a, b) => a.nome.localeCompare(b.nome));
+  }
+
+  async addAluno(dto: CreateAlunoDTO): Promise<Aluno> {
+    const { data, error } = await supabase.from('alunos').insert(dto).select().single();
+    if (error) {
+      if (error.code === '23505') throw new Error('Já existe um aluno com esta matrícula');
+      throw new Error(`Falha ao criar aluno: ${error.message}`);
+    }
+    return data;
+  }
+
+  async updateAluno(dto: Partial<Aluno> & { id: string }): Promise<Aluno> {
+    const { data, error } = await supabase
+      .from('alunos')
+      .update({ nome: dto.nome, matricula: dto.matricula })
+      .eq('id', dto.id)
+      .select()
+      .single();
+    if (error) {
+      if (error.code === '23505') throw new Error('Já existe um aluno com esta matrícula');
+      throw new Error(`Falha ao atualizar aluno: ${error.message}`);
+    }
+    return data;
+  }
 
   // ------------------ MATRÍCULAS ------------------
   async addMatricula(dto: { alunoId: string; turmaId: string }): Promise<Matricula> {
@@ -143,6 +192,7 @@ async updateAluno(dto: Partial<Aluno> & { id: string }): Promise<Aluno> {
     if (error) throw new Error(`Falha ao desmatricular aluno: ${error.message}`);
   }
 
+  // ... (o resto do código permanece inalterado: PROVÕES, QUESTÕES, etc.)
   // ------------------ PROVÕES ------------------
   async getProvoes(): Promise<Provao[]> {
     const { data, error } = await supabase.from('provoes').select('*').order('created_at', { ascending: false });
@@ -291,7 +341,7 @@ async updateAluno(dto: Partial<Aluno> & { id: string }): Promise<Aluno> {
     gabaritos: Map<string, Alternativa>;
   }> {
     const [alunos, questoes, scores, gabaritos] = await Promise.all([
-      this.getAlunosByTurma(turmaId),
+      this.fetchAllAlunosByTurma(turmaId), // Usa versão full para consistência
       this.getQuestoesByProvao(provaoId),
       this.getScoresByTurmaAndProvao(turmaId, provaoId),
       this.getGabaritosByProvao(provaoId)
