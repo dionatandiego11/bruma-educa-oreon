@@ -43,12 +43,15 @@ const InsertDataPage: React.FC = () => {
   useEffect(() => {
     if (selectedTurma) {
       Promise.all([
-        dbService.getAlunosByTurma(selectedTurma),
+        dbService.fetchAllAlunosByTurma(selectedTurma),
         dbService.getProvoesByTurma(selectedTurma)
       ]).then(([alunosData, provoesData]) => {
         setAlunos(alunosData);
         setProvoes(provoesData);
-      }).catch(() => showNotification('Falha ao buscar dados da turma.', 'error'));
+      }).catch((error) => {
+        console.error('Erro ao buscar dados da turma:', error);
+        showNotification('Falha ao buscar dados da turma.', 'error');
+      });
     } else {
       setAlunos([]);
       setProvoes([]);
