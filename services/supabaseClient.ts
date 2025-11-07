@@ -1,23 +1,39 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Load from Vite env vars with safe fallback to previous defaults
-const SUPABASE_URL_DEFAULT = 'https://llnbtdgkebbmyofkpywk.supabase.co';
-const SUPABASE_ANON_KEY_DEFAULT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxsbmJ0ZGdrZWJibXlvZmtweXdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4OTA3ODksImV4cCI6MjA3NDQ2Njc4OX0.JsXstMd0UYnaqdvRxTwGHx68_67hu-FbchkQ_llG6Ws';
+// Read from Vite env vars. Do not embed defaults in code.
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || SUPABASE_URL_DEFAULT;
-const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) || SUPABASE_ANON_KEY_DEFAULT;
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
-export const isSupabaseConfigured = Boolean(
-  (import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) ||
-  (supabaseUrl && supabaseAnonKey)
-);
-
-// If env vars are missing, we fallback to defaults and log a warning (keeps app working in dev)
-if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  console.warn('WARN: Using embedded Supabase credentials. Define VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to override.');
+function createMockSupabase() {
+  console.warn('Supabase not configured: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env.local or environment.');
+  const notConfigured = async () => ({ data: null, error: { message: 'Supabase não configurado' } });
+  const auth = {
+    getSession: async () => ({ data: { session: null }, error: null }),
+    onAuthStateChange: (_cb: any) => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    signInWithPassword: async () => ({ data: { user: null }, error: { message: 'Supabase não configurado' } }),
+    signOut: async () => ({ error: null }),
+  };
+  const from = () => ({
+    select: notConfigured,
+    insert: notConfigured,
+    update: notConfigured,
+    delete: notConfigured,
+    eq: notConfigured,
+    order: notConfigured,
+    single: notConfigured,
+  } as any);
+  return { auth, from } as any;
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+let supabase: any;
+try {
+  supabase = isSupabaseConfigured ? createClient(supabaseUrl as string, supabaseAnonKey as string) : createMockSupabase();
+} catch (_e) {
+  supabase = createMockSupabase();
+}
 
+export { supabase };
 export default supabase;
