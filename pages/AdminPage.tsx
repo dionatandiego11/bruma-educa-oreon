@@ -21,6 +21,7 @@ import Input from '../components/Input';
 import Select from '../components/Select';
 import PageLayout from '../components/PageLayout';
 import { useNotification } from '../hooks/useNotification';
+import ConfirmModal from '../components/ConfirmModal';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -66,6 +67,20 @@ const AdminPage: React.FC = () => {
   // Estados para edição
   const [editingAlunoId, setEditingAlunoId] = useState<string | null>(null);
   const [editingAluno, setEditingAluno] = useState<Partial<Aluno>>({ nome: '', matricula: '' });
+
+  // Busca de alunos para matrícula
+  const [alunoSearch, setAlunoSearch] = useState('');
+
+  // Edição/Exclusão de Série/Turma
+  const [isEditingSerie, setIsEditingSerie] = useState(false);
+  const [editingSerieName, setEditingSerieName] = useState('');
+  const [isEditingTurma, setIsEditingTurma] = useState(false);
+  const [editingTurmaName, setEditingTurmaName] = useState('');
+  // Confirmação de exclusão
+  const [confirmSerieOpen, setConfirmSerieOpen] = useState(false);
+  const [confirmTurmaOpen, setConfirmTurmaOpen] = useState(false);
+  // Busca geral da lista de alunos
+  const [alunosSearch, setAlunosSearch] = useState('');
 
   // --- Carregamento de Dados ---
   const loadInitialData = useCallback(async () => {
@@ -124,6 +139,8 @@ const AdminPage: React.FC = () => {
         setTurmasOfSelectedSerie([]);
       }
       setSelectedTurma('');
+      setIsEditingSerie(false);
+      setEditingSerieName('');
     };
     fetchTurmas();
   }, [selectedSerie, showNotification]);
@@ -151,6 +168,8 @@ const AdminPage: React.FC = () => {
         setAlunosNaTurma([]);
         setProfessoresNaTurma([]);
       }
+      setIsEditingTurma(false);
+      setEditingTurmaName('');
     };
     fetchTurmaDetails();
   }, [selectedTurma, showNotification]);
@@ -371,6 +390,22 @@ const AdminPage: React.FC = () => {
     return professores.filter(p => !idsProfessoresNaTurma.has(p.id));
   }, [professores, professoresNaTurma]);
 
+  // --- Filtro de alunos disponíveis por nome ---
+  const filteredAlunosDisponiveis = useMemo(() => {
+    if (!alunoSearch.trim()) return alunosDisponiveis;
+    const query = alunoSearch
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    return alunosDisponiveis.filter((a) =>
+      a.nome
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .includes(query)
+    );
+  }, [alunosDisponiveis, alunoSearch]);
+
   // --- Paginação ---
   const getPaginatedItems = useCallback((items: Aluno[], page: number) => {
     const start = (page - 1) * ITEMS_PER_PAGE;
@@ -383,9 +418,128 @@ const AdminPage: React.FC = () => {
     setter(newPage);
   }, []);
 
-  const paginatedAlunos = useMemo(() => getPaginatedItems(alunos, alunosPage), [getPaginatedItems, alunos, alunosPage]);
+  // Filtro para a lista de alunos geral (nome ou matrícula, acento-insensível)
+  const filteredAlunos = useMemo(() => {
+    if (!alunosSearch.trim()) return alunos;
+    const q = alunosSearch
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    return alunos.filter(a => {
+      const nome = a.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const mat = a.matricula.toLowerCase();
+      return nome.includes(q) || mat.includes(q);
+    });
+  }, [alunos, alunosSearch]);
+
+  const paginatedAlunos = useMemo(() => getPaginatedItems(filteredAlunos, alunosPage), [getPaginatedItems, filteredAlunos, alunosPage]);
   const paginatedAlunosNaTurma = useMemo(() => getPaginatedItems(alunosNaTurma, alunosNaTurmaPage), [getPaginatedItems, alunosNaTurma, alunosNaTurmaPage]);
-  const paginatedAlunosDisponiveis = useMemo(() => getPaginatedItems(alunosDisponiveis, alunosDisponiveisPage), [getPaginatedItems, alunosDisponiveis, alunosDisponiveisPage]);
+  const paginatedAlunosDisponiveis = useMemo(() => getPaginatedItems(filteredAlunosDisponiveis, alunosDisponiveisPage), [getPaginatedItems, filteredAlunosDisponiveis, alunosDisponiveisPage]);
+
+  // Quando o termo de busca mudar, volta para a primeira página
+  useEffect(() => {
+    setAlunosDisponiveisPage(1);
+  }, [alunoSearch]);
+
+  // --- Handlers: editar/excluir Série ---
+  const startEditSerie = () => {
+    if (!selectedSerie) return;
+    const s = seriesOfSelectedEscola.find((x) => x.id === selectedSerie);
+    setEditingSerieName(s?.nome || '');
+    setIsEditingSerie(true);
+  };
+
+  const cancelEditSerie = () => {
+    setIsEditingSerie(false);
+    setEditingSerieName('');
+  };
+
+  const saveEditSerie = async () => {
+    if (!selectedSerie || !editingSerieName.trim()) {
+      return showNotification('Informe um nome válido para a série.', 'error');
+    }
+    try {
+      const updated = await dbService.updateSerie(selectedSerie, editingSerieName.trim());
+      setSeriesOfSelectedEscola((prev) => prev.map((s) => (s.id === updated.id ? { ...s, nome: updated.nome } : s)));
+      showNotification('Série atualizada com sucesso!');
+      setIsEditingSerie(false);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      showNotification(msg, 'error');
+    }
+  };
+
+  const handleDeleteSerie = () => {
+    if (!selectedSerie) return;
+    setConfirmSerieOpen(true);
+  };
+
+  const confirmDeleteSerie = async () => {
+    if (!selectedSerie) return;
+    try {
+      await dbService.deleteSerie(selectedSerie);
+      setSeriesOfSelectedEscola((prev) => prev.filter((x) => x.id !== selectedSerie));
+      showNotification('Série excluída com sucesso!');
+      setSelectedSerie('');
+      setTurmasOfSelectedSerie([]);
+      setSelectedTurma('');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      showNotification(msg, 'error');
+    } finally {
+      setConfirmSerieOpen(false);
+    }
+  };
+
+  // --- Handlers: editar/excluir Turma ---
+  const startEditTurma = () => {
+    if (!selectedTurma) return;
+    const t = turmasOfSelectedSerie.find((x) => x.id === selectedTurma);
+    setEditingTurmaName(t?.nome || '');
+    setIsEditingTurma(true);
+  };
+
+  const cancelEditTurma = () => {
+    setIsEditingTurma(false);
+    setEditingTurmaName('');
+  };
+
+  const saveEditTurma = async () => {
+    if (!selectedTurma || !editingTurmaName.trim()) {
+      return showNotification('Informe um nome válido para a turma.', 'error');
+    }
+    try {
+      const updated = await dbService.updateTurma(selectedTurma, editingTurmaName.trim());
+      setTurmasOfSelectedSerie((prev) => prev.map((t) => (t.id === updated.id ? { ...t, nome: updated.nome } : t)));
+      showNotification('Turma atualizada com sucesso!');
+      setIsEditingTurma(false);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      showNotification(msg, 'error');
+    }
+  };
+
+  const handleDeleteTurma = () => {
+    if (!selectedTurma) return;
+    setConfirmTurmaOpen(true);
+  };
+
+  const confirmDeleteTurma = async () => {
+    if (!selectedTurma) return;
+    try {
+      await dbService.deleteTurma(selectedTurma);
+      setTurmasOfSelectedSerie((prev) => prev.filter((x) => x.id !== selectedTurma));
+      showNotification('Turma excluída com sucesso!');
+      setSelectedTurma('');
+      setAlunosNaTurma([]);
+      setProfessoresNaTurma([]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      showNotification(msg, 'error');
+    } finally {
+      setConfirmTurmaOpen(false);
+    }
+  };
 
   // --- Renderização ---
   const renderPagination = (page: number, totalItems: Aluno[], setter: React.Dispatch<React.SetStateAction<number>>) => {
@@ -471,6 +625,27 @@ const AdminPage: React.FC = () => {
               <option value="">Selecione uma série</option>
               {seriesOfSelectedEscola.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
             </Select>
+            <div className="mt-2 flex items-center gap-2">
+              {!selectedSerie ? (
+                <p className="text-sm text-gray-500">Selecione uma série para editar/excluir.</p>
+              ) : isEditingSerie ? (
+                <>
+                  <Input
+                    value={editingSerieName}
+                    onChange={(e) => setEditingSerieName(e.target.value)}
+                    placeholder="Novo nome da série"
+                    className="flex-1 text-sm py-1"
+                  />
+                  <Button type="button" size="sm" variant="success" onClick={saveEditSerie}><Check size={14} /></Button>
+                  <Button type="button" size="sm" variant="outline" onClick={cancelEditSerie}><X size={14} /></Button>
+                </>
+              ) : (
+                <>
+                  <Button type="button" size="sm" variant="outline" onClick={startEditSerie} disabled={!selectedSerie}><Edit size={14} /></Button>
+                  <Button type="button" size="sm" variant="danger" onClick={handleDeleteSerie} disabled={!selectedSerie}><X size={14} /></Button>
+                </>
+              )}
+            </div>
             <form onSubmit={handleAddTurma} className="flex gap-3 mt-4">
               <Input 
                 value={newTurma} 
@@ -484,6 +659,27 @@ const AdminPage: React.FC = () => {
               <option value="">Selecione uma turma</option>
               {turmasOfSelectedSerie.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
             </Select>
+            <div className="mt-2 flex items-center gap-2">
+              {!selectedTurma ? (
+                <p className="text-sm text-gray-500">Selecione uma turma para editar/excluir.</p>
+              ) : isEditingTurma ? (
+                <>
+                  <Input
+                    value={editingTurmaName}
+                    onChange={(e) => setEditingTurmaName(e.target.value)}
+                    placeholder="Novo nome da turma"
+                    className="flex-1 text-sm py-1"
+                  />
+                  <Button type="button" size="sm" variant="success" onClick={saveEditTurma}><Check size={14} /></Button>
+                  <Button type="button" size="sm" variant="outline" onClick={cancelEditTurma}><X size={14} /></Button>
+                </>
+              ) : (
+                <>
+                  <Button type="button" size="sm" variant="outline" onClick={startEditTurma} disabled={!selectedTurma}><Edit size={14} /></Button>
+                  <Button type="button" size="sm" variant="danger" onClick={handleDeleteTurma} disabled={!selectedTurma}><X size={14} /></Button>
+                </>
+              )}
+            </div>
           </Card>
         </div>
 
@@ -509,9 +705,16 @@ const AdminPage: React.FC = () => {
           </Card>
 
           <Card>
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Users className="text-teal-600"/>Gerenciar Alunos ({alunos.length})
+            <h2 className="text-xl font-semibold text-gray-800 mb-2 flex items-center gap-2">
+              <Users className="text-teal-600"/>Gerenciar Alunos ({filteredAlunos.length})
             </h2>
+            <div className="mb-2">
+              <Input
+                value={alunosSearch}
+                onChange={(e) => { setAlunosSearch(e.target.value); setAlunosPage(1); }}
+                placeholder="Pesquisar por nome ou matrícula..."
+              />
+            </div>
             <form onSubmit={handleAddAluno} className="space-y-3 mb-4">
               <Input 
                 value={newAluno.nome || ''} 
@@ -570,7 +773,7 @@ const AdminPage: React.FC = () => {
                       <p className="text-sm text-gray-500 text-center py-2">Nenhum aluno cadastrado.</p>
                     )}
                   </div>
-                  {renderPagination(alunosPage, alunos, setAlunosPage)}
+                  {renderPagination(alunosPage, filteredAlunos, setAlunosPage)}
                 </>
               )}
             </div>
@@ -606,7 +809,14 @@ const AdminPage: React.FC = () => {
                     {renderPagination(alunosNaTurmaPage, alunosNaTurma, setAlunosNaTurmaPage)}
                   </div>
 
-                  <h3 className="font-semibold mb-2">Matricular novos alunos ({alunosDisponiveis.length} disponíveis)</h3>
+                  <h3 className="font-semibold mb-2">Matricular novos alunos ({filteredAlunosDisponiveis.length} disponíveis)</h3>
+                  <div className="mb-2">
+                    <Input
+                      value={alunoSearch}
+                      onChange={(e) => setAlunoSearch(e.target.value)}
+                      placeholder="Pesquisar aluno pelo nome..."
+                    />
+                  </div>
                   <div className="border rounded-lg p-2 bg-gray-50">
                     <div className="max-h-48 overflow-y-auto">
                       {paginatedAlunosDisponiveis.length > 0 ? (
@@ -626,7 +836,7 @@ const AdminPage: React.FC = () => {
                         <p className="text-sm text-gray-500 text-center py-2">Nenhum aluno disponível para matricular.</p>
                       )}
                     </div>
-                    {renderPagination(alunosDisponiveisPage, alunosDisponiveis, setAlunosDisponiveisPage)}
+                    {renderPagination(alunosDisponiveisPage, filteredAlunosDisponiveis, setAlunosDisponiveisPage)}
                   </div>
                   <Button 
                     onClick={handleMatricularAlunos} 
@@ -663,6 +873,22 @@ const AdminPage: React.FC = () => {
           </Card>
         </div>
       </div>
+      <ConfirmModal
+        open={confirmSerieOpen}
+        title="Excluir Série"
+        description="Tem certeza que deseja excluir esta série? Se houver turmas associadas, a exclusão pode falhar."
+        confirmText="Excluir"
+        onConfirm={confirmDeleteSerie}
+        onCancel={() => setConfirmSerieOpen(false)}
+      />
+      <ConfirmModal
+        open={confirmTurmaOpen}
+        title="Excluir Turma"
+        description="Tem certeza que deseja excluir esta turma? Se houver matrículas/associações, a exclusão pode falhar."
+        confirmText="Excluir"
+        onConfirm={confirmDeleteTurma}
+        onCancel={() => setConfirmTurmaOpen(false)}
+      />
     </PageLayout>
   )
 }

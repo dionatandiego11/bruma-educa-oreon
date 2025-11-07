@@ -66,14 +66,16 @@ const InsertDataPage: React.FC = () => {
         try {
           const questoesData = await dbService.getQuestoesByProvao(selectedProvao);
           setQuestoes(questoesData);
+          const questaoIds = questoesData.map(q => q.id);
+          const scores = await dbService.getScoresByAlunoForQuestoes(selectedAluno, questaoIds);
           const respostasExistentes: { [key: string]: Alternativa | null } = {};
-          await Promise.all(questoesData.map(async (questao) => {
-            const score = await dbService.getScoreByAlunoQuestao(selectedAluno, questao.id);
-            respostasExistentes[questao.id] = score ? score.resposta : null;
-          }));
+          questoesData.forEach(q => {
+            const s = scores.find(sc => sc.questao_id === q.id);
+            respostasExistentes[q.id] = s ? s.resposta : null;
+          });
           setRespostas(respostasExistentes);
-        } catch { 
-          showNotification('Falha ao buscar questões ou respostas.', 'error'); 
+        } catch {
+          showNotification('Falha ao buscar questões ou respostas.', 'error');
         }
       } else {
         setQuestoes([]);

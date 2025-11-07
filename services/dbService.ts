@@ -41,6 +41,22 @@ class DatabaseService {
     return data;
   }
 
+  async updateSerie(serieId: string, nome: string): Promise<Serie> {
+    const { data, error } = await supabase
+      .from('series')
+      .update({ nome })
+      .eq('id', serieId)
+      .select()
+      .single();
+    if (error) throw new Error(`Falha ao atualizar série: ${error.message}`);
+    return data as Serie;
+  }
+
+  async deleteSerie(serieId: string): Promise<void> {
+    const { error } = await supabase.from('series').delete().eq('id', serieId);
+    if (error) throw new Error(`Falha ao excluir série: ${error.message}`);
+  }
+
   // ------------------ TURMAS ------------------
   async getTurmasBySerie(serieId: string): Promise<Turma[]> {
     const { data, error } = await supabase.from('turmas').select('*').eq('serie_id', serieId).order('nome');
@@ -55,6 +71,22 @@ class DatabaseService {
       throw new Error(`Falha ao criar turma: ${error.message}`);
     }
     return data;
+  }
+
+  async updateTurma(turmaId: string, nome: string): Promise<Turma> {
+    const { data, error } = await supabase
+      .from('turmas')
+      .update({ nome })
+      .eq('id', turmaId)
+      .select()
+      .single();
+    if (error) throw new Error(`Falha ao atualizar turma: ${error.message}`);
+    return data as Turma;
+  }
+
+  async deleteTurma(turmaId: string): Promise<void> {
+    const { error } = await supabase.from('turmas').delete().eq('id', turmaId);
+    if (error) throw new Error(`Falha ao excluir turma: ${error.message}`);
   }
 
   // ------------------ PROFESSORES ------------------
@@ -301,6 +333,17 @@ class DatabaseService {
     const { data, error } = await supabase.from('scores').select('*').eq('aluno_id', alunoId).eq('questao_id', questaoId).single();
     if (error && error.code !== 'PGRST116') throw new Error(`Falha ao buscar resposta: ${error.message}`);
     return data;
+  }
+
+  async getScoresByAlunoForQuestoes(alunoId: string, questaoIds: string[]): Promise<Score[]> {
+    if (!questaoIds || questaoIds.length === 0) return [];
+    const { data, error } = await supabase
+      .from('scores')
+      .select('*')
+      .eq('aluno_id', alunoId)
+      .in('questao_id', questaoIds);
+    if (error) throw new Error(`Falha ao buscar respostas do aluno: ${error.message}`);
+    return (data as Score[]) || [];
   }
 
   // ------------------ MÉTODOS OTIMIZADOS PARA RESULTADOS ------------------
