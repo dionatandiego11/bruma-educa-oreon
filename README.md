@@ -1,20 +1,35 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Educa‑Bruma – Gestão de Provas
 
-# Run and deploy your AI Studio app
+Aplicação web para gestão de escolas, séries, turmas, professores, alunos e avaliações. Permite criar provões, lançar respostas/notas e visualizar resultados e estatísticas.
 
-This contains everything you need to run your app locally.
+## Stack
+- Front-end: React + TypeScript + Vite
+- Auth/DB: Supabase (Auth + Postgres via REST)
 
-View your app in AI Studio: https://ai.studio/apps/drive/1V3qvAsxXZiWWpCklkQ2I-xWCM-UVmahE
+## Pré‑requisitos
+- Node.js LTS (>= 18)
+- Conta Supabase (URL e Anon Key)
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
+## Configuração
+1. Instale dependências:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
+2. Crie um arquivo `.env.local` na raiz baseado em `.env.example`:
+   - `VITE_SUPABASE_URL` – URL do seu projeto Supabase
+   - `VITE_SUPABASE_ANON_KEY` – Anon key do Supabase
+3. Rode em desenvolvimento:
    `npm run dev`
+
+Build de produção:
+- `npm run build` e sirva o conteúdo de `dist/` com seu servidor/CDN.
+
+## Segurança e Dados
+- Não há credenciais embutidas no código. Defina as variáveis de ambiente acima.
+- É imprescindível configurar o schema do banco e políticas RLS (Row Level Security) no Supabase para isolar dados por papel (admin/professor/aluno) e/ou tenant.
+
+## Implantação
+- Recomenda-se pipeline de CI/CD e containerização (Docker) para publicar `dist/` e gerenciar variáveis de ambiente com segurança.
+
+## Próximos passos sugeridos
+- Publicar migrações SQL (schema + seeds) e RLS.
+- Implementar RBAC no app e validar permissões por tela/ação.
+- Documentar política de privacidade e aderência à LGPD.
